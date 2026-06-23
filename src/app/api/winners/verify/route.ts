@@ -3,7 +3,11 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/draw/processing';
 import { VerifyWinnerSchema } from '@/lib/validations';
 import { notifyWinnerVerificationEmail } from '@/lib/email/notifications';
-import { createSignedProofUrl, unwrapJoin } from '@/lib/winners/helpers';
+import {
+  createSignedProofUrl,
+  unwrapJoin,
+  WINNER_PROOFS_BUCKET,
+} from '@/lib/winners/helpers';
 
 export async function POST(request: Request) {
   const auth = await requireAdmin();
@@ -47,11 +51,29 @@ export async function POST(request: Request) {
       );
     }
 
+    if (entry.payment_status === 'paid') {
+      return NextResponse.json(
+        { error: 'Winner has already been paid' },
+        { status: 409 }
+      );
+    }
+
+    if (action === 'approve' && !entry.proof_url) {
+      return NextResponse.json(
+        { error: 'Proof is required before approval' },
+        { status: 400 }
+      );
+    }
+
     const now = new Date().toISOString();
     const updates =
       action === 'approve'
         ? { payment_status: 'paid' as const, verified_at: now }
         : { payment_status: 'rejected' as const, proof_url: null, verified_at: null };
+
+    if (action === 'reject' && entry.proof_url) {
+      await admin.storage.from(WINNER_PROOFS_BUCKET).remove([entry.proof_url]);
+    }
 
     const { data: updated, error: updateError } = await admin
       .from('draw_entries')

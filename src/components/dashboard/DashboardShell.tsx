@@ -50,8 +50,17 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
             {profile.subscription_status.replace('_', ' ')}
           </span>
           .{' '}
-          <Link href="/pricing" className="font-semibold underline">
-            Subscribe to enter draws and manage scores
+          <Link
+            href={
+              profile.subscription_status === 'past_due'
+                ? '/dashboard/account'
+                : '/pricing'
+            }
+            className="font-semibold underline"
+          >
+            {profile.subscription_status === 'past_due'
+              ? 'Update billing to restore access'
+              : 'Subscribe to enter draws and manage scores'}
           </Link>
         </div>
       )}

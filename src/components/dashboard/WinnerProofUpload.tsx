@@ -4,7 +4,9 @@ import { Upload, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
+  ALLOWED_PROOF_MIME_TYPES,
   getWinnerDisplayStatus,
+  MAX_PROOF_FILE_BYTES,
   winnerStatusLabel,
 } from '@/lib/winners/helpers';
 import { cn, formatCurrency } from '@/lib/utils';
@@ -13,12 +15,14 @@ import type { DrawEntry } from '@/types';
 interface WinnerProofUploadProps {
   entry: DrawEntry;
   drawMonth: string;
+  id?: string;
   onUpdated?: () => void;
 }
 
 export function WinnerProofUpload({
   entry,
   drawMonth,
+  id,
   onUpdated,
 }: WinnerProofUploadProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -75,16 +79,12 @@ export function WinnerProofUpload({
   );
 
   function validateFile(nextFile: File): boolean {
-    const isAllowed =
-      nextFile.type.startsWith('image/') ||
-      nextFile.type === 'application/pdf';
-
-    if (!isAllowed) {
-      toast.error('Please upload an image or PDF file');
+    if (!ALLOWED_PROOF_MIME_TYPES.has(nextFile.type)) {
+      toast.error('Please upload a JPG, PNG, GIF, WebP, HEIC, or PDF file');
       return false;
     }
 
-    if (nextFile.size > 5 * 1024 * 1024) {
+    if (nextFile.size > MAX_PROOF_FILE_BYTES) {
       toast.error('File must be 5MB or smaller');
       return false;
     }
@@ -134,7 +134,10 @@ export function WinnerProofUpload({
     (!file && existingProofUrl?.includes('.pdf'));
 
   return (
-    <section className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-6 shadow-sm">
+    <section
+      id={id}
+      className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-6 shadow-sm"
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-lg font-semibold text-gray-900">

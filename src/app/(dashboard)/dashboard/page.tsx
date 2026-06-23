@@ -8,6 +8,7 @@ import {
   getScores,
   getWinningsSummary,
 } from '@/lib/dashboard/data';
+import { getWinnerDisplayStatus } from '@/lib/winners/helpers';
 import { CharityDashboardCard } from '@/components/dashboard/CharityDashboardCard';
 import { DrawHistory } from '@/components/dashboard/DrawHistory';
 import { DrawParticipationCard } from '@/components/dashboard/DrawParticipationCard';
@@ -36,12 +37,19 @@ export default async function DashboardPage() {
   if (!profile) redirect('/login');
 
   const pendingProofWinners = winnings.entries.filter(
-    ({ entry }) =>
-      entry.payment_status === 'pending' || entry.payment_status === 'rejected'
+    ({ entry }) => {
+      const status = getWinnerDisplayStatus(entry);
+      return status === 'pending' || status === 'under_review' || status === 'rejected';
+    },
   );
 
+  const drawEntryScores = scores
+    .slice()
+    .sort((a, b) => b.score_date.localeCompare(a.score_date))
+    .slice(0, 5);
+
   const isEntered =
-    profile.subscription_status === 'active' && scores.length > 0;
+    profile.subscription_status === 'active' && drawEntryScores.length === 5;
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -57,6 +65,7 @@ export default async function DashboardPage() {
           {pendingProofWinners.map(({ entry, drawMonth }) => (
             <WinnerProofUpload
               key={entry.id}
+              id={`winner-${entry.id}`}
               entry={entry}
               drawMonth={drawMonth}
             />
