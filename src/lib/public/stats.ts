@@ -1,0 +1,86 @@
+import { addMonths, format, startOfMonth } from 'date-fns';
+import { calculateCharityContribution } from '@/lib/charity/helpers';
+import {
+  calculatePrizePools,
+  DEFAULT_MONTHLY_FEE,
+} from '@/lib/drawEngine';
+import { createAdminClient } from '@/lib/supabase/server';
+import { getMonthKey } from '@/lib/utils';
+import type { Draw, Profile } from '@/types';
+
+export type PublicStats = {
+  charity_raised_this_month: number;
+  prize_pool: number;
+  active_players: number;
+  next_draw_date: string;
+  next_draw_label: string;
+};
+
+function defaultPublicStats(): PublicStats {
+  const nextDraw = startOfMonth(addMonths(new Date(), 1));
+  return {
+    charity_raised_this_month: 0,
+    prize_pool: 0,
+    active_players: 0,
+    next_draw_date: nextDraw.toISOString(),
+    next_draw_label: format(nextDraw, 'd MMMM yyyy'),
+  };
+}
+
+export async function getPublicStats(): Promise<PublicStats> {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return defaultPublicStats();
+  }
+
+  try {
+    const admin = createAdminClient();
+    const currentMonth = getMonthKey();
+
+    const { data: profiles } = await admin.from('profiles').select('*');
+    const activeProfiles = ((profiles ?? []) as Profile[]).filter(
+      (profile) => profile.subscription_status === 'active'
+    );
+
+    let charityRaisedThisMonth = 0;
+    for (const profile of activeProfiles) {
+      if (!profile.charity_id) continue;
+      charityRaisedThisMonth += calculateCharityContribution(
+        profile.subscription_plan,
+        profile.charity_percentage
+      );
+    }
+
+    const { data: draws } = await admin
+      .from('draws')
+      .select('*')
+      .order('month', { ascending: false });
+
+    const allDraws = (draws ?? []) as Draw[];
+    const currentMonthDraw = allDraws.find((draw) => draw.month === currentMonth);
+    const latestPublished = allDraws.find((draw) => draw.status === 'published');
+
+    const rolloverAmount = currentMonthDraw
+      ? Number(currentMonthDraw.rollover_amount)
+      : latestPublished
+        ? Number(latestPublished.rollover_amount)
+        : 0;
+
+    const prizePools = calculatePrizePools({
+      subscriberCount: activeProfiles.length,
+      monthlyFeePerUser: DEFAULT_MONTHLY_FEE,
+      rolloverAmount,
+    });
+
+    const nextDraw = startOfMonth(addMonths(new Date(), 1));
+
+    return {
+      charity_raised_this_month: Math.round(charityRaisedThisMonth * 100) / 100,
+      prize_pool: prizePools.totalPool,
+      active_players: activeProfiles.length,
+      next_draw_date: nextDraw.toISOString(),
+      next_draw_label: format(nextDraw, 'd MMMM yyyy'),
+    };
+  } catch {
+    return defaultPublicStats();
+  }
+}
