@@ -1,10 +1,31 @@
-export default function HomePage() {
-  return (
-    <main className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold">Digital Heroes Golf</h1>
-      <p className="mt-4 text-muted-foreground">
-        Play golf, enter draws, and support charity.
-      </p>
-    </main>
-  );
+import { createClient } from '@/lib/supabase/server';
+import { attachEventsToCharities } from '@/lib/charity/server';
+import { getPublicStats } from '@/lib/public/stats';
+import { HomePageContent } from '@/components/public/HomePageContent';
+
+export const dynamic = 'force-dynamic';
+
+async function getFeaturedCharity() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('charities')
+    .select('*')
+    .eq('is_active', true)
+    .eq('is_featured', true)
+    .limit(1)
+    .maybeSingle();
+
+  if (!data) return null;
+
+  const [charity] = await attachEventsToCharities(supabase, [data], true);
+  return charity;
+}
+
+export default async function HomePage() {
+  const [stats, featuredCharity] = await Promise.all([
+    getPublicStats(),
+    getFeaturedCharity(),
+  ]);
+
+  return <HomePageContent stats={stats} featuredCharity={featuredCharity} />;
 }
