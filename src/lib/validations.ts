@@ -9,9 +9,25 @@ export const SignupSchema = z.object({
   plan: z.enum(['monthly', 'yearly']),
 });
 
+const scoreDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => {
+    const [year, month, day] = value.split('-').map(Number);
+    const parsed = new Date(Date.UTC(year, month - 1, day));
+    return (
+      parsed.getUTCFullYear() === year &&
+      parsed.getUTCMonth() === month - 1 &&
+      parsed.getUTCDate() === day
+    );
+  }, 'Invalid calendar date')
+  .refine((value) => value <= new Date().toISOString().slice(0, 10), {
+    message: 'Score date cannot be in the future',
+  });
+
 export const ScoreSchema = z.object({
   score: z.number().int().min(1).max(45),
-  score_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  score_date: scoreDateSchema,
 });
 
 export const ScoreUpdateSchema = ScoreSchema.extend({

@@ -30,6 +30,20 @@ export async function POST(request: Request) {
 
   const { plan, charityId, charityPercentage } = parsed.data;
 
+  const { data: charity, error: charityError } = await supabase
+    .from('charities')
+    .select('id')
+    .eq('id', charityId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (charityError || !charity) {
+    return NextResponse.json(
+      { error: 'Selected charity is not available' },
+      { status: 400 }
+    );
+  }
+
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('full_name, email')
