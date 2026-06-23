@@ -5,8 +5,15 @@ import {
   updateSession,
 } from '@/lib/supabase/middleware';
 
-const DASHBOARD_PATHS = ['/dashboard', '/scores', '/draws', '/charity', '/account'];
-const SUBSCRIPTION_REQUIRED_PATHS = ['/dashboard', '/scores', '/draws', '/charity'];
+const DASHBOARD_PATHS = ['/dashboard'];
+const SUBSCRIPTION_REQUIRED_PATHS = ['/dashboard'];
+
+const LEGACY_DASHBOARD_REDIRECTS: Record<string, string> = {
+  '/scores': '/dashboard/scores',
+  '/draws': '/dashboard/draws',
+  '/charity': '/dashboard/charity',
+  '/account': '/dashboard/account',
+};
 
 const PROTECTED_API_PREFIXES = [
   '/api/draws',
@@ -96,6 +103,18 @@ export async function middleware(request: NextRequest) {
   const dashboardUrl = request.nextUrl.clone();
   dashboardUrl.pathname = '/dashboard';
 
+  for (const [legacyPath, targetPath] of Object.entries(LEGACY_DASHBOARD_REDIRECTS)) {
+    if (pathname === legacyPath || pathname.startsWith(`${legacyPath}/`)) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = targetPath;
+      return finalizeResponse(
+        sessionResponse,
+        NextResponse.redirect(redirectUrl),
+        role
+      );
+    }
+  }
+
   // Admin routes
   if (pathname.startsWith('/admin')) {
     if (!user) {
@@ -126,6 +145,7 @@ export async function middleware(request: NextRequest) {
 
     if (
       matchesPath(pathname, SUBSCRIPTION_REQUIRED_PATHS) &&
+      !pathname.startsWith('/dashboard/account') &&
       subscriptionStatus !== 'active'
     ) {
       return finalizeResponse(
