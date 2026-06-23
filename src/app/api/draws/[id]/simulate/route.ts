@@ -47,7 +47,8 @@ export async function POST(_request: Request, context: RouteContext) {
       .update({ status: 'simulated' })
       .eq('id', id);
 
-    const { entries: _entries, ...responseBody } = simulation;
+    const { entries, ...responseBody } = simulation;
+    void entries;
 
     return NextResponse.json(responseBody);
   } catch (error) {

@@ -6,6 +6,27 @@ import {
   planFromStripePrice,
 } from '@/lib/stripe/subscription-sync';
 import type Stripe from 'stripe';
+import {
+  formatRetryDateFromInvoice,
+  notifyPaymentFailedEmail,
+  notifyWelcomeEmail,
+} from '@/lib/email/notifications';
+
+async function findProfileContactByCustomerId(customerId: string) {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('full_name, email')
+    .eq('stripe_customer_id', customerId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Profile lookup failed: ${error.message}`);
+  }
+
+  return data;
+}
 
 async function findProfileByCustomerId(customerId: string) {
   const supabase = createAdminClient();
@@ -132,6 +153,7 @@ export async function updateProfileSubscriptionStatus(
 
 export async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
   await syncProfileFromSubscription(subscription, { status: 'active' });
+  notifyWelcomeEmail(subscription).catch(console.error);
 }
 
 export async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
@@ -169,4 +191,13 @@ export async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
   console.warn('[stripe webhook] Invoice payment failed', invoice.id);
   await updateProfileSubscriptionStatus(customerId, 'past_due');
+
+  const contact = await findProfileContactByCustomerId(customerId);
+  if (contact?.email) {
+    notifyPaymentFailedEmail({
+      email: contact.email,
+      name: contact.full_name,
+      retryDate: formatRetryDateFromInvoice(invoice),
+    });
+  }
 }

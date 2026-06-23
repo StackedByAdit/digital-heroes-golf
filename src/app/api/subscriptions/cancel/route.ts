@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import { format } from 'date-fns';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/server';
+import { notifySubscriptionCancelledEmail } from '@/lib/email/notifications';
 import { stripe } from '@/lib/stripe/server';
 
 export async function POST() {
@@ -15,7 +17,7 @@ export async function POST() {
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('stripe_subscription_id')
+    .select('full_name, email, stripe_subscription_id')
     .eq('id', user.id)
     .single();
 
@@ -27,6 +29,10 @@ export async function POST() {
   }
 
   try {
+    const subscription = await stripe.subscriptions.retrieve(
+      profile.stripe_subscription_id
+    );
+
     await stripe.subscriptions.update(profile.stripe_subscription_id, {
       cancel_at_period_end: true,
     });
@@ -39,6 +45,20 @@ export async function POST() {
 
     if (updateError) {
       throw new Error(updateError.message);
+    }
+
+    const periodEndUnix = (subscription as { current_period_end?: number })
+      .current_period_end;
+    const periodEnd = periodEndUnix
+      ? format(new Date(periodEndUnix * 1000), 'd MMMM yyyy')
+      : 'the end of your billing period';
+
+    if (profile.email) {
+      notifySubscriptionCancelledEmail({
+        email: profile.email,
+        name: profile.full_name,
+        endDate: periodEnd,
+      });
     }
 
     return NextResponse.json({

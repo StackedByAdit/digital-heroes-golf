@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/draw/processing';
 import { VerifyWinnerSchema } from '@/lib/validations';
+import { notifyWinnerVerificationEmail } from '@/lib/email/notifications';
 import { createSignedProofUrl, unwrapJoin } from '@/lib/winners/helpers';
 
 export async function POST(request: Request) {
@@ -69,20 +70,16 @@ export async function POST(request: Request) {
         | { full_name: string; email: string }[]
         | null
     );
-    const draw = unwrapJoin(
-      entry.draws as { month: string } | { month: string }[] | null
-    );
 
-    // TODO: trigger email notification to winner
-    console.log('[winner verify email stub]', {
-      action,
-      notes: notes ?? null,
-      winner_email: profile?.email,
-      winner_name: profile?.full_name,
-      draw_month: draw?.month,
-      prize_amount: entry.prize_amount,
-      draw_entry_id,
-    });
+    if (profile?.email) {
+      notifyWinnerVerificationEmail({
+        email: profile.email,
+        name: profile.full_name,
+        status: action === 'approve' ? 'approved' : 'rejected',
+        prize: Number(entry.prize_amount),
+        notes: notes ?? undefined,
+      });
+    }
 
     const proof_signed_url = await createSignedProofUrl(admin, updated.proof_url);
 

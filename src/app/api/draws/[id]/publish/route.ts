@@ -6,6 +6,7 @@ import {
   fetchActiveSubscribersWithScores,
   requireAdmin,
 } from '@/lib/draw/processing';
+import { notifyDrawResultEmails } from '@/lib/email/notifications';
 import type { Draw } from '@/types';
 
 type RouteContext = {
@@ -80,19 +81,7 @@ export async function POST(_request: Request, context: RouteContext) {
 
     await applyJackpotRollover(draw as Draw, simulation);
 
-    for (const entry of simulation.entries.filter((item) => item.prize_amount > 0)) {
-      const subscriber = subscribers.find(
-        (item) => item.profile.id === entry.user_id
-      );
-      // TODO: integrate email provider (Resend, SendGrid, etc.)
-      console.log('[draw publish] Winner notification stub', {
-        email: subscriber?.profile.email,
-        userId: entry.user_id,
-        drawMonth: draw.month,
-        matchType: entry.match_type,
-        prizeAmount: entry.prize_amount,
-      });
-    }
+    notifyDrawResultEmails(draw.month, subscribers, simulation.entries);
 
     return NextResponse.json({
       draw: publishedDraw,

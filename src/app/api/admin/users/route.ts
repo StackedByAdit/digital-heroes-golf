@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/draw/processing';
-import type { GolfScore, Profile } from '@/types';
+import type { Profile } from '@/types';
 
 export type AdminUserRow = Profile & {
   charity_name: string | null;
