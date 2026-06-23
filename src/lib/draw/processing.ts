@@ -140,6 +140,12 @@ export function flattenScorePool(subscribers: SubscriberWithScores[]): number[] 
   return subscribers.flatMap((subscriber) => subscriber.scores);
 }
 
+export function eligibleDrawSubscribers(
+  subscribers: SubscriberWithScores[],
+): SubscriberWithScores[] {
+  return subscribers.filter((subscriber) => subscriber.scores.length === 5);
+}
+
 export function buildSimulation(
   draw: Draw,
   subscribers: SubscriberWithScores[]
@@ -206,16 +212,19 @@ export async function applyJackpotRollover(draw: Draw, simulation: SimulationRes
   const admin = createAdminClient();
   const { data: nextDraw } = await admin
     .from('draws')
-    .select('id, rollover_amount')
+    .select('id, rollover_amount, jackpot_amount')
     .eq('month', nextMonth)
     .maybeSingle();
 
   if (!nextDraw) return;
 
+  const rolledJackpot = Number(draw.jackpot_amount);
+
   await admin
     .from('draws')
     .update({
-      rollover_amount: Number(nextDraw.rollover_amount) + Number(draw.jackpot_amount),
+      rollover_amount: Number(nextDraw.rollover_amount) + rolledJackpot,
+      jackpot_amount: Number(nextDraw.jackpot_amount) + rolledJackpot,
     })
     .eq('id', nextDraw.id);
 }

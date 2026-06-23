@@ -21,43 +21,48 @@ export async function GET() {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const admin = createAdminClient();
-  let query = admin.from('draws').select('*').order('month', { ascending: false });
-
-  if (!auth.isAdmin) {
-    query = query.eq('status', 'published');
-  }
-
-  const { data: draws, error } = await query;
-
-  if (error) {
-    return NextResponse.json({ error: 'Failed to fetch draws' }, { status: 500 });
-  }
-
-  const enriched: DrawWithMeta[] = [];
-
-  for (const draw of (draws ?? []) as Draw[]) {
-    const item: DrawWithMeta = { ...draw };
-
-    if (auth.isAdmin) {
-      item.winner_counts = await countDrawWinners(draw.id);
-    }
+  try {
+    const admin = createAdminClient();
+    let query = admin.from('draws').select('*').order('month', { ascending: false });
 
     if (!auth.isAdmin) {
-      const { data: entry } = await auth.supabase
-        .from('draw_entries')
-        .select('*')
-        .eq('draw_id', draw.id)
-        .eq('user_id', auth.user.id)
-        .maybeSingle();
-
-      item.my_entry = entry;
+      query = query.eq('status', 'published');
     }
 
-    enriched.push(item);
-  }
+    const { data: draws, error } = await query;
 
-  return NextResponse.json({ draws: enriched });
+    if (error) {
+      return NextResponse.json({ error: 'Failed to fetch draws' }, { status: 500 });
+    }
+
+    const enriched: DrawWithMeta[] = [];
+
+    for (const draw of (draws ?? []) as Draw[]) {
+      const item: DrawWithMeta = { ...draw };
+
+      if (auth.isAdmin) {
+        item.winner_counts = await countDrawWinners(draw.id);
+      }
+
+      if (!auth.isAdmin) {
+        const { data: entry } = await auth.supabase
+          .from('draw_entries')
+          .select('*')
+          .eq('draw_id', draw.id)
+          .eq('user_id', auth.user.id)
+          .maybeSingle();
+
+        item.my_entry = entry;
+      }
+
+      enriched.push(item);
+    }
+
+    return NextResponse.json({ draws: enriched });
+  } catch (error) {
+    console.error('[draws GET]', error);
+    return NextResponse.json({ error: 'Failed to fetch draws' }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {

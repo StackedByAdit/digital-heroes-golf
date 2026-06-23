@@ -50,13 +50,22 @@ export function generateAlgorithmicDraw(allUserScores: number[]): number[] {
     const candidates = [...weights.entries()].filter(([value]) => !drawn.has(value));
     const totalWeight = candidates.reduce((sum, [, weight]) => sum + weight, 0);
     let threshold = Math.random() * totalWeight;
+    let selected: number | null = null;
 
     for (const [value, weight] of candidates) {
       threshold -= weight;
       if (threshold <= 0) {
-        drawn.add(value);
+        selected = value;
         break;
       }
+    }
+
+    if (selected === null && candidates.length > 0) {
+      selected = candidates[candidates.length - 1][0];
+    }
+
+    if (selected !== null) {
+      drawn.add(selected);
     }
   }
 
@@ -79,7 +88,10 @@ export function getMatchType(matchCount: number): MatchType | null {
   return null;
 }
 
-/** Prize split: 40% jackpot, 35% four-match pool, 25% three-match pool. */
+/**
+ * Prize split: 40% jackpot, 35% four-match pool, 25% three-match pool.
+ * Rollover from a prior month with no 5-match winner is added to the jackpot only.
+ */
 export function calculatePrizePools(params: {
   subscriberCount: number;
   monthlyFeePerUser: number;
@@ -90,12 +102,12 @@ export function calculatePrizePools(params: {
   pool3match: number;
   totalPool: number;
 } {
-  const totalPool =
-    params.subscriberCount * params.monthlyFeePerUser + params.rolloverAmount;
+  const totalPool = params.subscriberCount * params.monthlyFeePerUser;
+  const monthlyJackpot = totalPool * 0.4;
 
   return {
     totalPool,
-    jackpot: roundCurrency(totalPool * 0.4),
+    jackpot: roundCurrency(monthlyJackpot + params.rolloverAmount),
     pool4match: roundCurrency(totalPool * 0.35),
     pool3match: roundCurrency(totalPool * 0.25),
   };

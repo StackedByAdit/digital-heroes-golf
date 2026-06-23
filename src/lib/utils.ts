@@ -27,16 +27,4 @@ export function getMonthKey(date: Date = new Date()) {
   return format(date, 'yyyy-MM');
 }
 
-export function calculatePrizePools(
-  subscriberCount: number,
-  feePerSubscriber: number,
-  rollover: number
-) {
-  const total = subscriberCount * feePerSubscriber + rollover;
-
-  return {
-    jackpot: total * 0.4,
-    pool4match: total * 0.35,
-    pool3match: total * 0.25,
-  };
-}
+export { calculatePrizePools } from '@/lib/drawEngine';
