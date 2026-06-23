@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import { Toaster } from 'sonner';
+import { rootMetadata } from '@/lib/seo/metadata';
 import '@/styles/globals.css';
 
 const inter = Inter({
@@ -15,11 +16,7 @@ const playfair = Playfair_Display({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: 'Digital Heroes Golf',
-  description:
-    'Play golf, win prizes, and support the charities that matter most to you.',
-};
+export const metadata: Metadata = rootMetadata;
 
 export default function RootLayout({
   children,
@@ -30,7 +27,18 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
         {children}
-        <Toaster richColors position="top-right" />
+        <Toaster
+          richColors
+          position="bottom-right"
+          theme="dark"
+          toastOptions={{
+            classNames: {
+              toast: 'border border-brand-gold/20 bg-brand-green text-brand-cream',
+              title: 'text-brand-cream',
+              description: 'text-brand-cream/80',
+            },
+          }}
+        />
       </body>
     </html>
   );

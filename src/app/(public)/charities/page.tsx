@@ -1,6 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { attachEventsToCharities } from '@/lib/charity/server';
+import { createPageMetadata } from '@/lib/seo/metadata';
 import { CharitiesDirectory } from '@/components/public/CharitiesDirectory';
+
+export const metadata = createPageMetadata(
+  'Charities',
+  'Discover partner charities supported by Digital Heroes Golf members and see the impact of every subscription.',
+);
 
 async function getCharities() {
   const supabase = await createClient();
