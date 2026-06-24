@@ -1,15 +1,19 @@
 import { z } from 'zod';
 
-export const golfScoreSchema = z.object({
-  score: z.number().int().min(1).max(45),
-  score_date: z.string().date(),
-});
-
-export const loginSchema = z.object({
+export const SignupSchema = z.object({
+  full_name: z.string().min(2).max(100),
   email: z.string().email(),
-  password: z.string().min(8),
+  password: z.string().min(8).max(72),
+  charity_id: z.string().uuid(),
+  charity_percentage: z.number().int().min(10).max(100),
+  plan: z.enum(['monthly', 'yearly']),
 });
 
-export const signupSchema = loginSchema.extend({
-  full_name: z.string().min(2),
+export const ScoreSchema = z.object({
+  score: z.number().int().min(1).max(45),
+  score_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+export const ScoreUpdateSchema = ScoreSchema.extend({
+  id: z.string().uuid(),
 });
