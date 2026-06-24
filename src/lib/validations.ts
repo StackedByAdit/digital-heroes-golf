@@ -49,6 +49,11 @@ export const CreateDrawSchema = z.object({
   draw_type: z.enum(['random', 'algorithmic']),
 });
 
+export const UpdateDrawSchema = z.object({
+  draw_type: z.enum(['random', 'algorithmic']).optional(),
+  regenerate_numbers: z.boolean().optional(),
+});
+
 export const CreateCharitySchema = z.object({
   name: z.string().min(2).max(200),
   description: z.string().min(10).max(5000),
@@ -65,6 +70,10 @@ export const CreateCharityEventSchema = z.object({
   title: z.string().min(2).max(200),
   event_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   description: z.string().max(2000).optional().nullable(),
+});
+
+export const UpdateCharityEventSchema = CreateCharityEventSchema.extend({
+  id: z.string().uuid(),
 });
 
 export const DeleteCharityEventSchema = z.object({
