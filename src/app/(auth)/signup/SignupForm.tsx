@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { mapSupabaseAuthError } from '@/lib/auth/errors';
 import {
   SUBSCRIPTION_MONTHLY_GBP,
   SUBSCRIPTION_YEARLY_GBP,
@@ -37,15 +38,36 @@ export default function SignupForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [charitiesLoading, setCharitiesLoading] = useState(true);
+  const [charitiesError, setCharitiesError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadCharities() {
-      const response = await fetch('/api/charities');
-      const data = await response.json();
-      if (response.ok) {
+      setCharitiesLoading(true);
+      setCharitiesError(null);
+
+      try {
+        const response = await fetch('/api/charities');
+        const data = await response.json();
+
+        if (!response.ok) {
+          setCharitiesError(
+            data.error ??
+              'Unable to load charities. Ask your admin to run `npm run db:setup`.'
+          );
+          setCharities([]);
+          return;
+        }
+
         setCharities(data.charities ?? []);
+      } catch {
+        setCharitiesError('Unable to load charities. Please refresh and try again.');
+        setCharities([]);
+      } finally {
+        setCharitiesLoading(false);
       }
     }
+
     loadCharities();
   }, []);
 
@@ -85,6 +107,12 @@ export default function SignupForm() {
 
   const contribution = calculateCharityContribution(plan, charityPercentage);
 
+  useEffect(() => {
+    if (step === 2) {
+      setCharitySearch('');
+    }
+  }, [step]);
+
   async function handleStep1(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
@@ -92,6 +120,48 @@ export default function SignupForm() {
 
     try {
       const supabase = createClient();
+
+      const signupResponse = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          full_name: fullName,
+        }),
+      });
+
+      const signupData = (await signupResponse.json()) as {
+        userId?: string;
+        error?: string;
+        fallback?: boolean;
+      };
+
+      if (signupResponse.ok && signupData.userId) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError) {
+          setError(mapSupabaseAuthError(signInError.message));
+          return;
+        }
+
+        setUserId(signupData.userId);
+        setStep(2);
+        return;
+      }
+
+      if (!signupData.fallback) {
+        setError(
+          typeof signupData.error === 'string'
+            ? signupData.error
+            : 'Account could not be created. Please try again.'
+        );
+        return;
+      }
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -101,7 +171,7 @@ export default function SignupForm() {
       });
 
       if (signUpError) {
-        setError(signUpError.message);
+        setError(mapSupabaseAuthError(signUpError.message));
         return;
       }
 
@@ -112,7 +182,7 @@ export default function SignupForm() {
 
       if (!data.session && data.user.identities?.length === 0) {
         setError(
-          'An account with this email already exists. Sign in or reset your password.',
+          'An account with this email already exists. Sign in or reset your password.'
         );
         return;
       }
@@ -127,7 +197,9 @@ export default function SignupForm() {
       if (data.session) {
         setStep(2);
       } else {
-        toast.info('Check your email to confirm your account, then continue signup.');
+        toast.info(
+          'Check your email to confirm your account, then continue signup.'
+        );
         router.push(`/login?redirectTo=${encodeURIComponent('/signup?step=2')}`);
       }
     } catch {
@@ -300,7 +372,22 @@ export default function SignupForm() {
               </div>
 
               <div className="grid max-h-64 gap-3 overflow-y-auto sm:grid-cols-2">
-                {filteredCharities.map((charity) => (
+                {charitiesLoading ? (
+                  <p className="col-span-full py-8 text-center text-sm text-brand-charcoal/60">
+                    Loading charities…
+                  </p>
+                ) : charitiesError ? (
+                  <p className="col-span-full rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {charitiesError}
+                  </p>
+                ) : filteredCharities.length === 0 ? (
+                  <p className="col-span-full py-8 text-center text-sm text-brand-charcoal/60">
+                    {charitySearch.trim()
+                      ? 'No charities match your search. Try another name or clear the search.'
+                      : 'No charities are available yet.'}
+                  </p>
+                ) : (
+                  filteredCharities.map((charity) => (
                   <button
                     key={charity.id}
                     type="button"
@@ -331,7 +418,8 @@ export default function SignupForm() {
                       </div>
                     </div>
                   </button>
-                ))}
+                  ))
+                )}
               </div>
 
               <div>

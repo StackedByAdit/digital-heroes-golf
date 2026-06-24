@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { mapSupabaseAuthError } from '@/lib/auth/errors';
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   auth_callback_failed: 'Email confirmation failed. Please try signing in again.',
@@ -46,7 +47,12 @@ export default function LoginForm() {
       });
 
       if (signInError) {
-        setError(signInError.message);
+        setError(mapSupabaseAuthError(signInError.message));
+        return;
+      }
+
+      if (redirectTo.startsWith('/api/')) {
+        window.location.assign(redirectTo);
         return;
       }
 
@@ -72,7 +78,7 @@ export default function LoginForm() {
     });
 
     if (resetError) {
-      setError(resetError.message);
+      setError(mapSupabaseAuthError(resetError.message));
       return;
     }
 
