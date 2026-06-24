@@ -18,6 +18,10 @@ export const ScoreUpdateSchema = ScoreSchema.extend({
   id: z.string().uuid(),
 });
 
+export const ScoreDeleteSchema = z.object({
+  id: z.string().uuid(),
+});
+
 export const CheckoutSchema = z.object({
   plan: z.enum(['monthly', 'yearly']),
   charityId: z.string().uuid(),
