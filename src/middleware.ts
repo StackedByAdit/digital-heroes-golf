@@ -4,6 +4,7 @@ import {
   mergeSessionCookies,
   updateSession,
 } from '@/lib/supabase/middleware';
+import { getSupabaseAnonKey, getSupabaseUrl } from '@/lib/supabase/env';
 
 const DASHBOARD_PATHS = ['/dashboard'];
 const SUBSCRIPTION_REQUIRED_PATHS = ['/dashboard'];
@@ -62,8 +63,8 @@ export async function middleware(request: NextRequest) {
 
   if (user) {
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      getSupabaseUrl(),
+      getSupabaseAnonKey(),
       {
         cookies: {
           getAll() {
