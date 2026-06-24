@@ -229,11 +229,11 @@ async function main() {
       ON CONFLICT (id) DO NOTHING;
     `);
 
-    console.log('Seeding charities…');
-    await client.query(readSql('supabase/seed-charities.sql'));
-
     console.log('Applying database patches…');
     await client.query(readSql('supabase/patches.sql'));
+
+    console.log('Seeding charities…');
+    await client.query(readSql('supabase/seed-charities.sql'));
 
     const { rows } = await client.query<{ count: string }>(
       "SELECT count(*)::text AS count FROM public.charities WHERE is_active = true"

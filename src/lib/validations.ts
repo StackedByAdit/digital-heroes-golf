@@ -57,6 +57,19 @@ export const UpdateDrawSchema = z.object({
 export const CreateCharitySchema = z.object({
   name: z.string().min(2).max(200),
   description: z.string().min(10).max(5000),
+  category: z
+    .enum([
+      'health',
+      'mental_health',
+      'environment',
+      'community',
+      'education',
+      'animals',
+      'veterans',
+      'youth',
+    ])
+    .optional()
+    .default('community'),
   image_url: z.string().url().optional().nullable(),
   website_url: z.string().url().optional().nullable(),
   is_featured: z.boolean().optional(),
@@ -111,4 +124,11 @@ export const AdminScoreUpdateSchema = ScoreUpdateSchema.extend({
 
 export const AdminScoreDeleteSchema = ScoreDeleteSchema.extend({
   user_id: z.string().uuid().optional(),
+});
+
+export const DonationCheckoutSchema = z.object({
+  charity_id: z.string().uuid(),
+  amount_gbp: z.number().min(1).max(10000),
+  donor_name: z.string().min(2).max(100).optional(),
+  donor_email: z.string().email().optional(),
 });

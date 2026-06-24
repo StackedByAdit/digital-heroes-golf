@@ -15,6 +15,11 @@ CREATE TABLE public.charities (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
   description text,
+  category text NOT NULL DEFAULT 'community'
+    CHECK (category IN (
+      'health', 'mental_health', 'environment', 'community',
+      'education', 'animals', 'veterans', 'youth'
+    )),
   image_url text,
   website_url text,
   is_featured boolean NOT NULL DEFAULT false,
@@ -49,6 +54,31 @@ CREATE TABLE public.golf_scores (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (user_id, score_date)
+);
+
+CREATE TABLE public.donations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES public.profiles (id) ON DELETE SET NULL,
+  charity_id uuid NOT NULL REFERENCES public.charities (id) ON DELETE RESTRICT,
+  amount_gbp numeric NOT NULL CHECK (amount_gbp >= 1),
+  stripe_checkout_session_id text UNIQUE,
+  stripe_payment_intent_id text,
+  donor_email text NOT NULL,
+  donor_name text,
+  status text NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'completed', 'failed')),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.user_notifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
+  type text NOT NULL,
+  title text NOT NULL,
+  body text NOT NULL,
+  href text,
+  read_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE public.charity_events (
@@ -103,12 +133,18 @@ CREATE INDEX idx_profiles_subscription_status ON public.profiles (subscription_s
 CREATE INDEX idx_profiles_charity_id ON public.profiles (charity_id);
 CREATE INDEX idx_golf_scores_user_id ON public.golf_scores (user_id);
 CREATE INDEX idx_golf_scores_score_date ON public.golf_scores (score_date);
-CREATE INDEX idx_charity_events_charity_id ON public.charity_events (charity_id);
+CREATE INDEX idx_charities_category ON public.charities (category);
 CREATE INDEX idx_charity_events_event_date ON public.charity_events (event_date);
 CREATE INDEX idx_draws_status ON public.draws (status);
 CREATE INDEX idx_draw_entries_draw_id ON public.draw_entries (draw_id);
 CREATE INDEX idx_draw_entries_user_id ON public.draw_entries (user_id);
 CREATE INDEX idx_draw_entries_match_type ON public.draw_entries (match_type);
+CREATE INDEX idx_donations_charity_id ON public.donations (charity_id);
+CREATE INDEX idx_donations_user_id ON public.donations (user_id);
+CREATE INDEX idx_donations_status ON public.donations (status);
+CREATE INDEX idx_user_notifications_user_id ON public.user_notifications (user_id);
+CREATE INDEX idx_user_notifications_unread ON public.user_notifications (user_id, read_at)
+  WHERE read_at IS NULL;
 
 -- ---------------------------------------------------------------------------
 -- Helper functions
@@ -339,6 +375,8 @@ ALTER TABLE public.charities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.charity_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.draws ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.draw_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.donations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_notifications ENABLE ROW LEVEL SECURITY;
 
 -- profiles
 CREATE POLICY "profiles_select_own"
@@ -449,6 +487,33 @@ CREATE POLICY "draw_entries_admin_all"
   USING (public.is_admin())
   WITH CHECK (public.is_admin());
 
+-- donations
+CREATE POLICY "donations_select_own"
+  ON public.donations
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "donations_select_admin"
+  ON public.donations
+  FOR SELECT
+  TO authenticated
+  USING (public.is_admin());
+
+-- user_notifications
+CREATE POLICY "notifications_select_own"
+  ON public.user_notifications
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "notifications_update_own"
+  ON public.user_notifications
+  FOR UPDATE
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
 -- ---------------------------------------------------------------------------
 -- Grants
 -- ---------------------------------------------------------------------------
@@ -462,6 +527,8 @@ GRANT SELECT ON public.draws TO anon, authenticated;
 GRANT SELECT, UPDATE ON public.profiles TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.golf_scores TO authenticated;
 GRANT SELECT ON public.draw_entries TO authenticated;
+GRANT SELECT ON public.donations TO authenticated;
+GRANT SELECT, UPDATE ON public.user_notifications TO authenticated;
 
 GRANT EXECUTE ON FUNCTION public.get_user_role(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
@@ -519,3 +586,48 @@ CREATE POLICY "winner_proofs_select_own"
     bucket_id = 'winner-proofs'
     AND (storage.foldername(name))[1] = auth.uid()::text
   );
+
+-- ---------------------------------------------------------------------------
+-- Storage: charity images (public bucket, admin-managed)
+-- ---------------------------------------------------------------------------
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'charity-images',
+  'charity-images',
+  true,
+  5242880,
+  ARRAY['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+CREATE POLICY "charity_images_public_read"
+  ON storage.objects
+  FOR SELECT
+  TO anon, authenticated
+  USING (bucket_id = 'charity-images');
+
+CREATE POLICY "charity_images_admin_insert"
+  ON storage.objects
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    bucket_id = 'charity-images'
+    AND public.is_admin()
+  );
+
+CREATE POLICY "charity_images_admin_update"
+  ON storage.objects
+  FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'charity-images' AND public.is_admin())
+  WITH CHECK (bucket_id = 'charity-images' AND public.is_admin());
+
+CREATE POLICY "charity_images_admin_delete"
+  ON storage.objects
+  FOR DELETE
+  TO authenticated
+  USING (bucket_id = 'charity-images' AND public.is_admin());
