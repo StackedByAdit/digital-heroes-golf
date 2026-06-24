@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import {
+  donationConfirmationEmail,
   drawResultEmail,
   paymentFailedEmail,
   subscriptionCancelledEmail,
@@ -118,6 +119,25 @@ export function notifyPaymentFailedEmail(params: {
   const template = paymentFailedEmail({
     name: params.name,
     retryDate: params.retryDate,
+  });
+
+  sendEmailAsync({
+    to: params.email,
+    subject: template.subject,
+    html: template.html,
+  });
+}
+
+export function notifyDonationConfirmationEmail(params: {
+  email: string;
+  name: string;
+  charityName: string;
+  amountGbp: number;
+}): void {
+  const template = donationConfirmationEmail({
+    name: params.name,
+    charityName: params.charityName,
+    amountGbp: params.amountGbp,
   });
 
   sendEmailAsync({

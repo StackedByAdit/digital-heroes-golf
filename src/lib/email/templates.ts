@@ -3,7 +3,10 @@ export type EmailTemplate = {
   html: string;
 };
 
-function layout(content: string): string {
+function layout(content: string, options?: { guest?: boolean }): string {
+  const footerNote = options?.guest
+    ? 'You received this receipt after a donation via Digital Heroes Golf.'
+    : 'You&apos;re receiving this because you have a Digital Heroes Golf account.';
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,7 +32,7 @@ function layout(content: string): string {
           </tr>
           <tr>
             <td style="padding:0 32px 28px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#6b7280;">
-              You&apos;re receiving this because you have a Digital Heroes Golf account.
+              ${footerNote}
               <br />
               &copy; ${new Date().getFullYear()} Digital Heroes Golf
             </td>
@@ -162,5 +165,21 @@ export function paymentFailedEmail(params: {
   return {
     subject: 'Action needed: subscription payment failed',
     html,
+  };
+}
+
+export function donationConfirmationEmail(params: {
+  name: string;
+  charityName: string;
+  amountGbp: number;
+}): EmailTemplate {
+  return {
+    subject: `Donation confirmed — ${params.charityName}`,
+    html: layout(`
+    <p style="margin:0 0 16px;font-size:18px;font-weight:bold;color:#1a3c2e;">Thank you, ${params.name}!</p>
+    <p style="margin:0 0 16px;">Your one-off donation of <strong style="color:#1a3c2e;">£${params.amountGbp.toFixed(2)}</strong> to <strong style="color:#1a3c2e;">${params.charityName}</strong> has been received.</p>
+    <p style="margin:0;">Your generosity helps our partner charities deliver real impact. Thank you for playing your part.</p>
+    ${button(`${appUrl}/charities`, 'Explore more charities')}
+  `, { guest: true }),
   };
 }

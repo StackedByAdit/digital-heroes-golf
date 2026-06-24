@@ -8,12 +8,10 @@ export async function sendEmail(params: {
   try {
     const resend = getResendClient();
     if (!resend) {
-      if (process.env.NODE_ENV === 'development') {
-        console.info('[email] Skipped send (RESEND_API_KEY not set)', {
-          to: params.to,
-          subject: params.subject,
-        });
-      }
+      console.warn(
+        '[email] RESEND_API_KEY is not set — emails will not be sent. Add it to .env.local for production.',
+        { to: params.to, subject: params.subject }
+      );
       return { success: false, error: 'Email provider not configured' };
     }
 

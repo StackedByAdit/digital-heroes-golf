@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe/server';
 import { activateSubscriptionFromCheckoutSessionId } from '@/lib/stripe/activate-subscription';
+import { completeDonationCheckoutSession } from '@/lib/stripe/donation-handler';
 import {
   handleInvoicePaymentFailed,
   handleInvoicePaymentSucceeded,
@@ -43,6 +44,8 @@ export async function POST(request: Request) {
         const session = event.data.object as Stripe.Checkout.Session;
         if (session.mode === 'subscription' && session.id) {
           await activateSubscriptionFromCheckoutSessionId(session.id);
+        } else if (session.mode === 'payment') {
+          await completeDonationCheckoutSession(session);
         }
         break;
       }
