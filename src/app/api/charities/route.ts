@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { attachEventsToCharities } from '@/lib/charity/server';
-import { requireAdmin, requireAuth } from '@/lib/draw/processing';
+import { requireAdmin } from '@/lib/draw/processing';
 import { CreateCharitySchema } from '@/lib/validations';
 
 export async function GET(request: Request) {
@@ -10,8 +10,21 @@ export async function GET(request: Request) {
   const search = searchParams.get('search')?.trim().toLowerCase();
   const includeInactive = searchParams.get('include_inactive') === 'true';
 
-  const auth = await requireAuth();
-  const isAdmin = !('error' in auth) && auth.isAdmin;
+  const { createClient } = await import('@/lib/supabase/server');
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let isAdmin = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    isAdmin = profile?.role === 'admin';
+  }
 
   try {
     const admin = createAdminClient();
