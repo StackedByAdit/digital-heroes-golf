@@ -116,6 +116,27 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  if (pathname === '/login' && user) {
+    const redirectTo = request.nextUrl.searchParams.get('redirectTo');
+    const safeRedirect =
+      redirectTo &&
+      redirectTo.startsWith('/') &&
+      !redirectTo.startsWith('//') &&
+      !redirectTo.startsWith('/login')
+        ? redirectTo
+        : null;
+
+    const destination = request.nextUrl.clone();
+    destination.pathname = safeRedirect ?? '/dashboard';
+    destination.search = '';
+
+    return finalizeResponse(
+      sessionResponse,
+      NextResponse.redirect(destination),
+      role
+    );
+  }
+
   // Admin routes
   if (pathname.startsWith('/admin')) {
     if (!user) {
