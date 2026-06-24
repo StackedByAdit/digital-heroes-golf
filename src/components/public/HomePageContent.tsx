@@ -1,10 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import { Heart, PenLine, Trophy } from 'lucide-react';
-import { AnimatedCounter } from '@/components/public/AnimatedCounter';
-import { ScrollReveal } from '@/components/public/ScrollReveal';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { excerpt } from '@/lib/charity/helpers';
 import { formatCurrency } from '@/lib/utils';
 import type { Charity } from '@/types';
@@ -29,82 +28,76 @@ const STEPS = [
   {
     icon: Trophy,
     title: 'Win & Give',
-    description: 'Join the monthly draw for prizes while your subscription fuels real impact.',
+    description: 'Match numbers in the monthly draw and share prizes with fellow players.',
   },
 ];
 
 const TESTIMONIALS = [
   {
-    quote:
-      'I joined for the draw, but stayed for the cause. Knowing £4 of my subscription goes to the hospice every month makes every round feel meaningful.',
-    name: 'Sarah M.',
+    name: 'James R.',
     location: 'Surrey',
+    quote:
+      'I love that every round I play can help a charity I care about — and the monthly draw keeps it exciting.',
   },
   {
+    name: 'Sarah M.',
+    location: 'Edinburgh',
     quote:
-      'Won a 4-match prize in my third month — and the verification was straightforward. It feels fair, transparent, and genuinely exciting.',
-    name: 'James T.',
-    location: 'Yorkshire',
+      'Simple to use, transparent prizes, and a brilliant way to combine golf with giving back.',
   },
   {
+    name: 'David K.',
+    location: 'Bristol',
     quote:
-      'Our club foursome all picked different charities. We still compete on the course, but now we are all playing for something bigger.',
-    name: 'Priya K.',
-    location: 'Berkshire',
+      'Won a 4-match prize in my second month. The whole experience feels fair and well run.',
   },
 ];
 
 export function HomePageContent({ stats, featuredCharity }: HomePageContentProps) {
   return (
     <>
-      <section className="relative flex min-h-[92vh] items-center overflow-hidden bg-brand-green">
+      <section className="relative flex min-h-[85vh] items-center overflow-hidden bg-brand-green sm:min-h-[92vh]">
         <div className="hero-path" aria-hidden />
         <div className="hero-ball hero-ball-1" aria-hidden />
         <div className="hero-ball hero-ball-2" aria-hidden />
         <div className="hero-ball hero-ball-3" aria-hidden />
         <div className="hero-ball hero-ball-4" aria-hidden />
 
-        <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-3xl"
-          >
+        <div className="relative mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+          <ScrollReveal className="mx-auto flex max-w-3xl flex-col items-center text-center lg:mx-0 lg:items-start lg:text-left">
             <p className="mb-4 inline-flex rounded-full border border-brand-gold/30 bg-brand-gold/10 px-4 py-1 text-sm font-medium text-brand-gold">
-              £
               <AnimatedCounter
                 value={stats.charity_raised_this_month}
-                format={(n) => Math.round(n).toLocaleString('en-GB')}
+                prefix="£"
               />{' '}
               raised for charity this month
             </p>
-            <h1 className="font-display text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">
+            <h1 className="font-display text-3xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl">
               Play Golf. Win Prizes. Change Lives.
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-brand-cream/85">
+            <p className="mt-6 max-w-2xl text-base leading-relaxed text-brand-cream/85 sm:text-lg">
               Enter your scores, join monthly draws, and support the charities that
               matter most to you.
             </p>
-            <div className="mt-10 flex flex-wrap gap-4">
+            <div className="mt-10 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start">
               <Link
                 href="/pricing"
-                className="rounded-full bg-brand-gold px-8 py-3.5 text-sm font-semibold text-brand-charcoal transition hover:bg-brand-gold/90"
+                className="btn-interactive btn-cta rounded-full bg-brand-gold px-8 py-3.5 text-center text-sm font-semibold text-brand-charcoal transition hover:bg-brand-gold/90"
               >
                 Start Playing
               </Link>
               <Link
                 href="/charities"
-                className="rounded-full border border-white/30 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10"
+                className="btn-interactive rounded-full border border-white/30 px-8 py-3.5 text-center text-sm font-semibold text-white transition hover:bg-white/10"
               >
                 See the Charities
               </Link>
             </div>
-          </motion.div>
+          </ScrollReveal>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:py-24 sm:px-6 lg:px-8">
         <ScrollReveal className="text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-brand-gold">
             Simple by design
@@ -114,12 +107,12 @@ export function HomePageContent({ stats, featuredCharity }: HomePageContentProps
           </h2>
         </ScrollReveal>
 
-        <div className="mt-14 grid gap-8 md:grid-cols-3">
+        <div className="mt-10 grid gap-6 sm:mt-14 sm:gap-8 md:grid-cols-3">
           {STEPS.map((step, index) => {
             const Icon = step.icon;
             return (
               <ScrollReveal key={step.title} delay={index * 0.12}>
-                <div className="group rounded-2xl border border-brand-green/10 bg-white p-8 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+                <div className="dashboard-card group rounded-2xl border border-brand-green/10 bg-white p-6 sm:p-8">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-green/10 text-brand-green transition group-hover:bg-brand-gold/20 group-hover:text-brand-gold">
                     <Icon className="h-5 w-5" />
                   </div>
@@ -153,20 +146,20 @@ export function HomePageContent({ stats, featuredCharity }: HomePageContentProps
                 : undefined
             }
           />
-          <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-            <ScrollReveal className="max-w-2xl">
+          <div className="relative mx-auto max-w-7xl px-4 py-16 sm:py-24 sm:px-6 lg:px-8">
+            <ScrollReveal className="mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
               <p className="text-sm font-semibold uppercase tracking-widest text-brand-gold">
                 This Month&apos;s Featured Cause
               </p>
               <h2 className="mt-4 font-display text-3xl font-bold text-white sm:text-4xl">
                 {featuredCharity.name}
               </h2>
-              <p className="mt-4 text-lg leading-relaxed text-brand-cream/85">
+              <p className="mt-4 text-base leading-relaxed text-brand-cream/85 sm:text-lg">
                 {excerpt(featuredCharity.description, 160)}
               </p>
               <Link
                 href={`/charities/${featuredCharity.id}`}
-                className="mt-8 inline-flex rounded-full bg-brand-gold px-8 py-3.5 text-sm font-semibold text-brand-charcoal transition hover:bg-brand-gold/90"
+                className="btn-interactive btn-cta mt-8 inline-flex rounded-full bg-brand-gold px-8 py-3.5 text-sm font-semibold text-brand-charcoal transition hover:bg-brand-gold/90"
               >
                 Support Now
               </Link>
@@ -175,7 +168,7 @@ export function HomePageContent({ stats, featuredCharity }: HomePageContentProps
         </section>
       )}
 
-      <section className="bg-white py-24">
+      <section className="bg-white py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <ScrollReveal className="text-center">
             <h2 className="font-display text-3xl font-bold text-brand-green sm:text-4xl">
@@ -186,11 +179,11 @@ export function HomePageContent({ stats, featuredCharity }: HomePageContentProps
             </p>
           </ScrollReveal>
 
-          <div className="mt-12 grid gap-6 sm:grid-cols-3">
+          <div className="mt-10 grid grid-cols-1 gap-6 sm:mt-12 md:grid-cols-3">
             <ScrollReveal delay={0.05}>
-              <div className="rounded-2xl border border-brand-green/10 bg-brand-cream p-8 text-center">
+              <div className="dashboard-card rounded-2xl border border-brand-green/10 bg-brand-cream p-6 text-center sm:p-8">
                 <p className="text-sm font-medium text-brand-charcoal/60">Current prize pool</p>
-                <p className="mt-3 font-display text-3xl font-bold text-brand-green">
+                <p className="prize-pulse mt-3 font-display text-3xl font-bold text-brand-green">
                   <AnimatedCounter
                     value={stats.prize_pool}
                     format={(n) => formatCurrency(n)}
@@ -199,7 +192,7 @@ export function HomePageContent({ stats, featuredCharity }: HomePageContentProps
               </div>
             </ScrollReveal>
             <ScrollReveal delay={0.1}>
-              <div className="rounded-2xl border border-brand-green/10 bg-brand-cream p-8 text-center">
+              <div className="dashboard-card rounded-2xl border border-brand-green/10 bg-brand-cream p-6 text-center sm:p-8">
                 <p className="text-sm font-medium text-brand-charcoal/60">Active players</p>
                 <p className="mt-3 font-display text-3xl font-bold text-brand-green">
                   <AnimatedCounter value={stats.active_players} />
@@ -207,7 +200,7 @@ export function HomePageContent({ stats, featuredCharity }: HomePageContentProps
               </div>
             </ScrollReveal>
             <ScrollReveal delay={0.15}>
-              <div className="rounded-2xl border border-brand-green/10 bg-brand-cream p-8 text-center">
+              <div className="dashboard-card rounded-2xl border border-brand-green/10 bg-brand-cream p-6 text-center sm:p-8">
                 <p className="text-sm font-medium text-brand-charcoal/60">Next draw</p>
                 <p className="mt-3 font-display text-2xl font-bold text-brand-green sm:text-3xl">
                   {stats.next_draw_label}
@@ -218,16 +211,16 @@ export function HomePageContent({ stats, featuredCharity }: HomePageContentProps
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:py-24 sm:px-6 lg:px-8">
         <ScrollReveal className="text-center">
           <h2 className="font-display text-3xl font-bold text-brand-green sm:text-4xl">
             Stories from our community
           </h2>
         </ScrollReveal>
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        <div className="mt-10 grid grid-cols-1 gap-6 sm:mt-12 md:grid-cols-3">
           {TESTIMONIALS.map((item, index) => (
             <ScrollReveal key={item.name} delay={index * 0.1}>
-              <blockquote className="flex h-full flex-col rounded-2xl border border-brand-green/10 bg-white p-8 shadow-sm">
+              <blockquote className="dashboard-card flex h-full flex-col rounded-2xl border border-brand-green/10 bg-white p-6 shadow-sm sm:p-8">
                 <p className="flex-1 text-sm leading-relaxed text-brand-charcoal/80">
                   &ldquo;{item.quote}&rdquo;
                 </p>
@@ -241,7 +234,7 @@ export function HomePageContent({ stats, featuredCharity }: HomePageContentProps
         </div>
       </section>
 
-      <section className="bg-brand-green py-24">
+      <section className="bg-brand-green py-16 sm:py-24">
         <ScrollReveal className="mx-auto max-w-3xl px-4 text-center sm:px-6">
           <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
             Ready to play your part?
@@ -252,7 +245,7 @@ export function HomePageContent({ stats, featuredCharity }: HomePageContentProps
           </p>
           <Link
             href="/pricing"
-            className="mt-8 inline-flex rounded-full bg-brand-gold px-10 py-4 text-sm font-semibold text-brand-charcoal transition hover:bg-brand-gold/90"
+            className="btn-interactive btn-cta mt-8 inline-flex rounded-full bg-brand-gold px-10 py-4 text-sm font-semibold text-brand-charcoal transition hover:bg-brand-gold/90"
           >
             Subscribe today
           </Link>
