@@ -19,10 +19,13 @@ export type CharityBreakdown = {
 };
 
 export type AdminStats = {
+  total_users: number;
   active_subscribers: number;
+  inactive_subscribers: number;
   monthly_subscribers: number;
   yearly_subscribers: number;
   total_prize_pool_this_month: number;
+  total_prize_paid: number;
   total_charity_contributions: number;
   pending_winners: number;
   draws_this_year: number;
@@ -172,7 +175,7 @@ export async function getAdminStats(): Promise<AdminStats> {
   if (publishedIds.length > 0) {
     const { data: entries } = await admin
       .from('draw_entries')
-      .select('match_type, prize_amount')
+      .select('match_type, prize_amount, payment_status')
       .in('draw_id', publishedIds);
 
     for (const entry of entries ?? []) {
@@ -181,8 +184,10 @@ export async function getAdminStats(): Promise<AdminStats> {
       if (entry.match_type === '4-match') winners4 += 1;
       if (entry.match_type === '5-match') winners5 += 1;
       if (entry.match_type && Number(entry.prize_amount) > 0) {
-        totalPrizePaid += Number(entry.prize_amount);
         winnerCount += 1;
+        if (entry.payment_status === 'paid') {
+          totalPrizePaid += Number(entry.prize_amount);
+        }
       }
     }
   }
@@ -222,10 +227,13 @@ export async function getAdminStats(): Promise<AdminStats> {
     : 0;
 
   return {
+    total_users: allProfiles.length,
     active_subscribers: activeProfiles.length,
+    inactive_subscribers: allProfiles.length - activeProfiles.length,
     monthly_subscribers: monthlySubscribers,
     yearly_subscribers: yearlySubscribers,
     total_prize_pool_this_month: prizePools.totalPool,
+    total_prize_paid: Math.round(totalPrizePaid * 100) / 100,
     total_charity_contributions:
       Math.round(totalCharityContributions * 100) / 100,
     pending_winners: pendingWinners,

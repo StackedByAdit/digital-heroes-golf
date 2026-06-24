@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/draw/processing';
 import {
   CreateCharityEventSchema,
   DeleteCharityEventSchema,
+  UpdateCharityEventSchema,
 } from '@/lib/validations';
 
 type RouteContext = {
@@ -71,6 +72,58 @@ export async function POST(request: Request, context: RouteContext) {
     console.error('[charity events POST]', error);
     return NextResponse.json(
       { error: 'Failed to create event' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: Request, context: RouteContext) {
+  const auth = await requireAdmin();
+  if ('error' in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  const { id: charityId } = await context.params;
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  const parsed = UpdateCharityEventSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'Validation failed', details: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('charity_events')
+      .update({
+        title: parsed.data.title,
+        event_date: parsed.data.event_date,
+        description: parsed.data.description ?? null,
+      })
+      .eq('id', parsed.data.id)
+      .eq('charity_id', charityId)
+      .select('*')
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (!data) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ event: data });
+  } catch (error) {
+    console.error('[charity events PUT]', error);
+    return NextResponse.json(
+      { error: 'Failed to update event' },
       { status: 500 }
     );
   }

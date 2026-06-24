@@ -55,11 +55,22 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ charities: withEvents });
   } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Failed to fetch charities';
+
     console.error('[charities GET]', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch charities' },
-      { status: 500 }
-    );
+
+    if (message.includes('Could not find the table')) {
+      return NextResponse.json(
+        {
+          error:
+            'Database not set up yet. Run `npm run db:setup` after adding SUPABASE_DB_PASSWORD to .env.local (Supabase → Project Settings → Database).',
+        },
+        { status: 503 }
+      );
+    }
+
+    return NextResponse.json({ error: 'Failed to fetch charities' }, { status: 500 });
   }
 }
 

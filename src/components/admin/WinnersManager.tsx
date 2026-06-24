@@ -12,6 +12,7 @@ import {
   type WinnerListRow,
 } from '@/lib/winners/helpers';
 import { cn, formatCurrency } from '@/lib/utils';
+import type { Draw } from '@/types';
 
 type TabKey = 'all' | WinnerDisplayStatus;
 
@@ -33,11 +34,16 @@ export function WinnersManager() {
   const [rejectTarget, setRejectTarget] = useState<WinnerListRow | null>(null);
   const [rejectNotes, setRejectNotes] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [drawFilter, setDrawFilter] = useState('');
+  const [draws, setDraws] = useState<Pick<Draw, 'id' | 'month'>[]>([]);
 
   const loadWinners = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/winners');
+      const params = new URLSearchParams();
+      if (drawFilter) params.set('draw_id', drawFilter);
+      const query = params.toString();
+      const response = await fetch(`/api/winners${query ? `?${query}` : ''}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'Failed to load winners');
       setWinners(data.winners ?? []);
@@ -46,6 +52,26 @@ export function WinnersManager() {
     } finally {
       setLoading(false);
     }
+  }, [drawFilter]);
+
+  useEffect(() => {
+    async function loadDraws() {
+      try {
+        const response = await fetch('/api/draws');
+        const data = await response.json();
+        if (response.ok) {
+          setDraws(
+            (data.draws ?? []).map((draw: Draw) => ({
+              id: draw.id,
+              month: draw.month,
+            }))
+          );
+        }
+      } catch {
+        // Non-blocking — filter dropdown stays empty
+      }
+    }
+    loadDraws();
   }, []);
 
   useEffect(() => {
@@ -166,7 +192,7 @@ export function WinnersManager() {
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {TABS.map((item) => (
             <button
               key={item.key}
@@ -182,6 +208,19 @@ export function WinnersManager() {
               {item.label}
             </button>
           ))}
+          <select
+            value={drawFilter}
+            onChange={(event) => setDrawFilter(event.target.value)}
+            className="rounded-lg border px-3 py-1.5 text-sm"
+            aria-label="Filter by draw month"
+          >
+            <option value="">All draws</option>
+            {draws.map((draw) => (
+              <option key={draw.id} value={draw.id}>
+                {draw.month}
+              </option>
+            ))}
+          </select>
         </div>
         <button
           type="button"
