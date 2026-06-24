@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/server';
-import { getAppUrl, stripe } from '@/lib/stripe/server';
-import { planFromMetadata } from '@/lib/stripe/subscription-sync';
-import type { SubscriptionPlan } from '@/types';
+import { activateSubscriptionFromCheckoutSession } from '@/lib/stripe/activate-subscription';
+import { getAppUrl } from '@/lib/stripe/server';
+
+const ERROR_REDIRECTS: Record<string, string> = {
+  missing_session: 'missing_session',
+  session_mismatch: 'session_mismatch',
+  payment_incomplete: 'payment_incomplete',
+  profile_update_failed: 'profile_update_failed',
+  session_invalid: 'session_invalid',
+};
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -22,62 +28,18 @@ export async function GET(request: Request) {
   if (!user) {
     const loginTarget = `/api/subscriptions/success?session_id=${encodeURIComponent(sessionId)}`;
     return NextResponse.redirect(
-      `${appUrl}/login?redirectTo=${encodeURIComponent(loginTarget)}`,
+      `${appUrl}/login?redirectTo=${encodeURIComponent(loginTarget)}`
     );
   }
 
-  try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['subscription'],
-    });
+  const result = await activateSubscriptionFromCheckoutSession(sessionId, user.id);
 
-    if (session.metadata?.userId !== user.id) {
-      return NextResponse.redirect(`${appUrl}/pricing?error=session_mismatch`);
-    }
-
-    if (session.payment_status !== 'paid' && session.status !== 'complete') {
-      return NextResponse.redirect(`${appUrl}/pricing?error=payment_incomplete`);
-    }
-
-    const subscriptionId =
-      typeof session.subscription === 'string'
-        ? session.subscription
-        : session.subscription?.id;
-
-    const plan =
-      planFromMetadata(session.metadata?.plan) ??
-      (session.metadata?.plan as SubscriptionPlan | undefined) ??
-      null;
-
-    const charityId = session.metadata?.charityId ?? null;
-    const charityPercentage = session.metadata?.charityPercentage
-      ? Number(session.metadata.charityPercentage)
-      : undefined;
-
-    const admin = createAdminClient();
-    const { error } = await admin
-      .from('profiles')
-      .update({
-        subscription_status: 'active',
-        subscription_plan: plan,
-        stripe_subscription_id: subscriptionId ?? null,
-        stripe_customer_id:
-          typeof session.customer === 'string' ? session.customer : session.customer?.id,
-        charity_id: charityId,
-        ...(charityPercentage !== undefined && {
-          charity_percentage: charityPercentage,
-        }),
-      })
-      .eq('id', user.id);
-
-    if (error) {
-      console.error('[subscription success]', error);
-      return NextResponse.redirect(`${appUrl}/pricing?error=profile_update_failed`);
-    }
-
-    return NextResponse.redirect(`${appUrl}/dashboard`);
-  } catch (error) {
-    console.error('[subscription success]', error);
-    return NextResponse.redirect(`${appUrl}/pricing?error=session_invalid`);
+  if (!result.ok) {
+    const errorCode = ERROR_REDIRECTS[result.reason] ?? 'session_invalid';
+    return NextResponse.redirect(`${appUrl}/pricing?error=${errorCode}`);
   }
+
+  const dashboardUrl = new URL('/dashboard', appUrl);
+  dashboardUrl.searchParams.set('subscribed', '1');
+  return NextResponse.redirect(dashboardUrl.toString());
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe/server';
+import { activateSubscriptionFromCheckoutSessionId } from '@/lib/stripe/activate-subscription';
 import {
   handleInvoicePaymentFailed,
   handleInvoicePaymentSucceeded,
@@ -38,6 +39,13 @@ export async function POST(request: Request) {
 
   try {
     switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.mode === 'subscription' && session.id) {
+          await activateSubscriptionFromCheckoutSessionId(session.id);
+        }
+        break;
+      }
       case 'customer.subscription.created':
         await handleSubscriptionCreated(
           event.data.object as Stripe.Subscription

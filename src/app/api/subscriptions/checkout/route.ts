@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getAppUrl, getOrCreateStripeCustomer, stripe } from '@/lib/stripe/server';
+import {
+  StripePriceConfigError,
+  resolveStripePriceId,
+} from '@/lib/stripe/prices';
 import { CheckoutSchema } from '@/lib/validations';
 
 export async function POST(request: Request) {
@@ -54,16 +58,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
   }
 
-  const priceId =
-    plan === 'monthly'
-      ? process.env.STRIPE_MONTHLY_PRICE_ID
-      : process.env.STRIPE_YEARLY_PRICE_ID;
-
-  if (!priceId) {
-    return NextResponse.json(
-      { error: 'Stripe price not configured' },
-      { status: 500 }
-    );
+  let priceId: string;
+  try {
+    priceId = await resolveStripePriceId(plan);
+  } catch (error) {
+    if (error instanceof StripePriceConfigError) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    throw error;
   }
 
   try {
