@@ -1,11 +1,13 @@
 'use client';
 
-import { Upload } from 'lucide-react';
+import Link from 'next/link';
 import { useMemo } from 'react';
-import { toast } from 'sonner';
 import { cn, formatCurrency } from '@/lib/utils';
+import {
+  getWinnerDisplayStatus,
+  winnerStatusLabel,
+} from '@/lib/winners/helpers';
 import type { DrawWithMeta } from '@/lib/draw/processing';
-import type { DrawEntry } from '@/types';
 
 interface DrawHistoryProps {
   draws: DrawWithMeta[];
@@ -16,11 +18,6 @@ export function DrawHistory({ draws }: DrawHistoryProps) {
     () => draws.filter((draw) => draw.my_entry),
     [draws]
   );
-
-  function handleUploadProof(entry: DrawEntry) {
-    // TODO: integrate proof upload API + storage
-    toast.info(`Proof upload coming soon for ${entry.match_type} prize`);
-  }
 
   if (participation.length === 0) {
     return (
@@ -49,6 +46,7 @@ export function DrawHistory({ draws }: DrawHistoryProps) {
             {participation.map((draw) => {
               const entry = draw.my_entry!;
               const isWinner = Boolean(entry.match_type && entry.prize_amount > 0);
+              const displayStatus = getWinnerDisplayStatus(entry);
 
               return (
                 <tr
@@ -68,17 +66,19 @@ export function DrawHistory({ draws }: DrawHistoryProps) {
                       ? formatCurrency(Number(entry.prize_amount))
                       : '—'}
                   </td>
-                  <td className="px-4 py-3 capitalize">{entry.payment_status}</td>
+                  <td className="px-4 py-3">
+                    {isWinner ? winnerStatusLabel(displayStatus) : '—'}
+                  </td>
                   <td className="px-4 py-3 text-right">
-                    {isWinner && entry.payment_status === 'pending' && (
-                      <button
-                        type="button"
-                        onClick={() => handleUploadProof(entry)}
-                        className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium hover:bg-gray-50"
+                    {isWinner && (
+                      <Link
+                        href="/dashboard"
+                        className="text-xs font-medium text-emerald-700 hover:text-emerald-900"
                       >
-                        <Upload className="h-3.5 w-3.5" />
-                        Upload Proof
-                      </button>
+                        {displayStatus === 'pending' || displayStatus === 'rejected'
+                          ? 'Upload proof'
+                          : 'View on dashboard'}
+                      </Link>
                     )}
                   </td>
                 </tr>
