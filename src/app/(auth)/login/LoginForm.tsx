@@ -2,9 +2,18 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  auth_callback_failed: 'Email confirmation failed. Please try signing in again.',
+  session_mismatch: 'Checkout session did not match your account. Please try again.',
+  payment_incomplete: 'Payment was not completed. Please try checkout again.',
+  profile_update_failed: 'Payment succeeded but profile update failed. Contact support.',
+  session_invalid: 'Checkout session could not be verified. Please try again.',
+  missing_session: 'Missing checkout session. Please start checkout again.',
+};
 
 export default function LoginForm() {
   const router = useRouter();
@@ -16,6 +25,13 @@ export default function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+
+  useEffect(() => {
+    const authError = searchParams.get('error');
+    if (authError) {
+      setError(AUTH_ERROR_MESSAGES[authError] ?? 'Something went wrong. Please try again.');
+    }
+  }, [searchParams]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

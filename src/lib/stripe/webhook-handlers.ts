@@ -106,10 +106,17 @@ export async function syncProfileFromSubscription(
 
   if (overrides?.charityId) {
     update.charity_id = overrides.charityId;
+  } else if (subscription.metadata.charityId) {
+    update.charity_id = subscription.metadata.charityId;
   }
 
   if (overrides?.charityPercentage !== undefined) {
     update.charity_percentage = overrides.charityPercentage;
+  } else if (subscription.metadata.charityPercentage) {
+    const parsed = Number(subscription.metadata.charityPercentage);
+    if (!Number.isNaN(parsed)) {
+      update.charity_percentage = parsed;
+    }
   }
 
   const { error } = await supabase
@@ -152,8 +159,11 @@ export async function updateProfileSubscriptionStatus(
 }
 
 export async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
-  await syncProfileFromSubscription(subscription, { status: 'active' });
-  notifyWelcomeEmail(subscription).catch(console.error);
+  const status = mapStripeSubscriptionStatus(subscription.status);
+  await syncProfileFromSubscription(subscription, { status });
+  if (status === 'active') {
+    notifyWelcomeEmail(subscription).catch(console.error);
+  }
 }
 
 export async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
@@ -180,6 +190,21 @@ export async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
   if (!customerId) return;
 
   console.info('[stripe webhook] Invoice payment succeeded', invoice.id);
+
+  const profile = await findProfileByCustomerId(customerId);
+  if (!profile) return;
+
+  const supabase = createAdminClient();
+  const { data: currentProfile } = await supabase
+    .from('profiles')
+    .select('subscription_status')
+    .eq('id', profile.id)
+    .maybeSingle();
+
+  if (currentProfile?.subscription_status === 'cancelled') {
+    return;
+  }
+
   await updateProfileSubscriptionStatus(customerId, 'active');
 }
 

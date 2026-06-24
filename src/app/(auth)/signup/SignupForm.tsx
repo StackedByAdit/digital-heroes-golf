@@ -57,9 +57,15 @@ export default function SignupForm() {
       } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('charity_id')
+          .eq('id', user.id)
+          .maybeSingle();
+
         const stepParam = searchParams.get('step');
-        if (stepParam === '2') setStep(2);
-        else if (stepParam === '3') setStep(3);
+        if (stepParam === '3' && profile?.charity_id) setStep(3);
+        else if (stepParam === '3' || stepParam === '2') setStep(2);
       }
     }
     checkSession();
@@ -104,6 +110,13 @@ export default function SignupForm() {
         return;
       }
 
+      if (!data.session && data.user.identities?.length === 0) {
+        setError(
+          'An account with this email already exists. Sign in or reset your password.',
+        );
+        return;
+      }
+
       setUserId(data.user.id);
 
       await supabase
@@ -115,7 +128,7 @@ export default function SignupForm() {
         setStep(2);
       } else {
         toast.info('Check your email to confirm your account, then continue signup.');
-        router.push('/login?redirectTo=/signup?step=2');
+        router.push(`/login?redirectTo=${encodeURIComponent('/signup?step=2')}`);
       }
     } catch {
       setError('Something went wrong. Please try again.');
@@ -126,6 +139,10 @@ export default function SignupForm() {
 
   async function handleStep2(event: React.FormEvent) {
     event.preventDefault();
+    if (!userId) {
+      setError('Please sign in to continue charity setup.');
+      return;
+    }
     if (!selectedCharityId) {
       setError('Please select a charity');
       return;
@@ -135,17 +152,18 @@ export default function SignupForm() {
     setLoading(true);
 
     try {
-      const supabase = createClient();
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
+      const response = await fetch('/api/user/charity', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           charity_id: selectedCharityId,
           charity_percentage: charityPercentage,
-        })
-        .eq('id', userId!);
+        }),
+      });
+      const data = await response.json();
 
-      if (updateError) {
-        setError(updateError.message);
+      if (!response.ok) {
+        setError(data.error ?? 'Failed to save charity preferences.');
         return;
       }
 
@@ -158,7 +176,11 @@ export default function SignupForm() {
   }
 
   async function handleStep3() {
-    if (!selectedCharityId) return;
+    if (!selectedCharityId) {
+      setError('Please choose a charity before continuing to checkout.');
+      setStep(2);
+      return;
+    }
 
     setError(null);
     setLoading(true);

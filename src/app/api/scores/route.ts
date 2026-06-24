@@ -46,6 +46,10 @@ async function fetchUserScores(
   return (data ?? []) as GolfScore[];
 }
 
+function oldestScoreEntry(scores: GolfScore[]): GolfScore | undefined {
+  return [...scores].sort((a, b) => a.score_date.localeCompare(b.score_date))[0];
+}
+
 export async function GET() {
   const { supabase, userId } = await getAuthenticatedUserId();
 
@@ -101,10 +105,7 @@ export async function POST(request: Request) {
     }
 
     if (existing.length >= 5) {
-      const oldest = [...existing].sort(
-        (a, b) =>
-          new Date(a.score_date).getTime() - new Date(b.score_date).getTime()
-      )[0];
+      const oldest = oldestScoreEntry(existing);
 
       if (oldest) {
         const { error: deleteError } = await supabase

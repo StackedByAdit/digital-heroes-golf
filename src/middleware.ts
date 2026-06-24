@@ -144,6 +144,7 @@ export async function middleware(request: NextRequest) {
     }
 
     if (
+      role !== 'admin' &&
       matchesPath(pathname, SUBSCRIPTION_REQUIRED_PATHS) &&
       !pathname.startsWith('/dashboard/account') &&
       subscriptionStatus !== 'active'
@@ -176,7 +177,9 @@ export async function middleware(request: NextRequest) {
       }
 
       if (
+        role !== 'admin' &&
         !pathname.startsWith('/api/admin') &&
+        !pathname.startsWith('/api/winners/upload-proof') &&
         subscriptionStatus !== 'active' &&
         !pathname.startsWith('/api/subscriptions') &&
         !pathname.startsWith('/api/user')

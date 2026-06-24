@@ -20,7 +20,10 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(`${appUrl}/login?redirectTo=/pricing`);
+    const loginTarget = `/api/subscriptions/success?session_id=${encodeURIComponent(sessionId)}`;
+    return NextResponse.redirect(
+      `${appUrl}/login?redirectTo=${encodeURIComponent(loginTarget)}`,
+    );
   }
 
   try {
