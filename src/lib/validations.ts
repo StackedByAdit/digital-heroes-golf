@@ -27,3 +27,8 @@ export const CheckoutSchema = z.object({
   charityId: z.string().uuid(),
   charityPercentage: z.number().int().min(10).max(100),
 });
+
+export const CreateDrawSchema = z.object({
+  month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
+  draw_type: z.enum(['random', 'algorithmic']),
+});
