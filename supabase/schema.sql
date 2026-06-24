@@ -468,3 +468,54 @@ GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.calculate_prize_pools(int, numeric, numeric) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.count_score_matches(int[], int[]) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.run_draw(uuid) TO authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Storage: winner proof uploads (private bucket)
+-- ---------------------------------------------------------------------------
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'winner-proofs',
+  'winner-proofs',
+  false,
+  5242880,
+  ARRAY[
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/heic',
+    'application/pdf'
+  ]
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+CREATE POLICY "winner_proofs_insert_own"
+  ON storage.objects
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    bucket_id = 'winner-proofs'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+CREATE POLICY "winner_proofs_select_admin"
+  ON storage.objects
+  FOR SELECT
+  TO authenticated
+  USING (
+    bucket_id = 'winner-proofs'
+    AND public.is_admin()
+  );
+
+CREATE POLICY "winner_proofs_select_own"
+  ON storage.objects
+  FOR SELECT
+  TO authenticated
+  USING (
+    bucket_id = 'winner-proofs'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );

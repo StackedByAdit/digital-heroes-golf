@@ -59,3 +59,9 @@ export const UpdateUserCharitySchema = z.object({
   charity_id: z.string().uuid(),
   charity_percentage: z.number().int().min(10).max(100),
 });
+
+export const VerifyWinnerSchema = z.object({
+  draw_entry_id: z.string().uuid(),
+  action: z.enum(['approve', 'reject']),
+  notes: z.string().max(1000).optional(),
+});
