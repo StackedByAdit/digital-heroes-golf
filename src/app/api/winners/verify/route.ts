@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/draw/processing';
 import { VerifyWinnerSchema } from '@/lib/validations';
 import { notifyWinnerVerificationEmail } from '@/lib/email/notifications';
+import { createUserNotification } from '@/lib/notifications/service';
 import {
   createSignedProofUrl,
   unwrapJoin,
@@ -107,6 +108,19 @@ export async function POST(request: Request) {
         notes: notes ?? undefined,
       });
     }
+
+    await createUserNotification({
+      userId: entry.user_id as string,
+      type: 'winner',
+      title:
+        action === 'approve' ? 'Prize approved' : 'Proof needs resubmission',
+      body:
+        action === 'approve'
+          ? `Your £${Number(entry.prize_amount).toFixed(2)} prize has been approved and is being processed.`
+          : notes ??
+            'Your winner verification was rejected. Upload a clearer scorecard image.',
+      href: '/dashboard/draws',
+    });
 
     const proof_signed_url = await createSignedProofUrl(admin, updated.proof_url);
 
