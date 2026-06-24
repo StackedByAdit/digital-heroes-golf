@@ -121,6 +121,30 @@ export function UserManager() {
     }
   }
 
+  async function cancelSubscription() {
+    if (!selectedUser) return;
+    if (
+      !confirm(
+        `Cancel subscription for ${selectedUser.profile.full_name}? They will lose access at period end.`
+      )
+    ) {
+      return;
+    }
+    try {
+      const response = await fetch(
+        `/api/admin/users/${selectedUser.profile.id}/cancel-subscription`,
+        { method: 'POST' }
+      );
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? 'Cancel failed');
+      toast.success(data.message ?? 'Subscription cancelled');
+      await openUser(selectedUser.profile.id);
+      await loadUsers();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Cancel failed');
+    }
+  }
+
   async function addScore(event: React.FormEvent) {
     event.preventDefault();
     if (!selectedUser) return;
@@ -382,8 +406,26 @@ export function UserManager() {
                     })
                   }
                   className="w-full rounded-lg border px-3 py-2 text-sm"
+                  aria-label="Charity percentage"
                 />
-                <div className="flex gap-2">
+                {(selectedUser.profile.stripe_customer_id ||
+                  selectedUser.profile.stripe_subscription_id) && (
+                  <div className="rounded-lg border bg-gray-50 p-3 text-xs text-gray-600">
+                    {selectedUser.profile.stripe_customer_id && (
+                      <p>
+                        <span className="font-medium text-gray-700">Stripe customer:</span>{' '}
+                        {selectedUser.profile.stripe_customer_id}
+                      </p>
+                    )}
+                    {selectedUser.profile.stripe_subscription_id && (
+                      <p className="mt-1">
+                        <span className="font-medium text-gray-700">Stripe subscription:</span>{' '}
+                        {selectedUser.profile.stripe_subscription_id}
+                      </p>
+                    )}
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={saveUser}
@@ -399,6 +441,15 @@ export function UserManager() {
                   >
                     Reset password
                   </button>
+                  {selectedUser.profile.subscription_status === 'active' && (
+                    <button
+                      type="button"
+                      onClick={cancelSubscription}
+                      className="rounded-lg border border-red-200 px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                    >
+                      Cancel subscription
+                    </button>
+                  )}
                 </div>
               </section>
 

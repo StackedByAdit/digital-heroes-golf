@@ -42,12 +42,15 @@ export function ReportsDashboard() {
 
     const rows: string[][] = [
       ['Metric', 'Value'],
+      ['Total users', String(stats.total_users)],
       ['Active subscribers', String(stats.active_subscribers)],
+      ['Inactive subscribers', String(stats.inactive_subscribers)],
       ['Monthly subscribers', String(stats.monthly_subscribers)],
       ['Yearly subscribers', String(stats.yearly_subscribers)],
       ['MRR', String(stats.mrr)],
       ['Churn rate (%)', String(stats.churn_rate)],
       ['Prize pool this month', String(stats.total_prize_pool_this_month)],
+      ['Total prize paid out', String(stats.total_prize_paid)],
       ['Total charity contributions', String(stats.total_charity_contributions)],
       ['Pending winners', String(stats.pending_winners)],
       ['Draws this year', String(stats.draws_this_year)],
@@ -131,6 +134,21 @@ export function ReportsDashboard() {
       </div>
 
       <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-gray-900">Users</h2>
+        <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Metric label="Total users" value={String(stats.total_users)} />
+          <Metric
+            label="Active subscribers"
+            value={String(stats.active_subscribers)}
+          />
+          <Metric
+            label="Inactive / cancelled"
+            value={String(stats.inactive_subscribers)}
+          />
+        </dl>
+      </section>
+
+      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-gray-900">Revenue</h2>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="MRR" value={formatCurrency(stats.mrr)} />
@@ -160,6 +178,14 @@ export function ReportsDashboard() {
           <Metric
             label="Prize pool this month"
             value={formatCurrency(stats.total_prize_pool_this_month)}
+          />
+          <Metric
+            label="Total prize paid out"
+            value={formatCurrency(stats.total_prize_paid)}
+          />
+          <Metric
+            label="Draws this year"
+            value={String(stats.draws_this_year)}
           />
         </dl>
 

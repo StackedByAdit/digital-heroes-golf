@@ -36,23 +36,21 @@ export async function GET(request: Request) {
       query = query.eq('subscription_plan', plan);
     }
 
+    if (search) {
+      query = query.or(
+        `full_name.ilike.%${search}%,email.ilike.%${search}%`
+      );
+    }
+
+    const offset = (page - 1) * pageSize;
+    query = query.range(offset, offset + pageSize - 1);
+
     const { data: profiles, error, count } = await query;
 
     if (error) throw new Error(error.message);
 
-    let filtered = (profiles ?? []) as Profile[];
-
-    if (search) {
-      filtered = filtered.filter(
-        (profile) =>
-          profile.full_name.toLowerCase().includes(search) ||
-          profile.email.toLowerCase().includes(search)
-      );
-    }
-
-    const total = search ? filtered.length : count ?? filtered.length;
-    const offset = (page - 1) * pageSize;
-    const pageRows = filtered.slice(offset, offset + pageSize);
+    const pageRows = (profiles ?? []) as Profile[];
+    const total = count ?? pageRows.length;
 
     const { data: charities } = await admin.from('charities').select('id, name');
     const charityNames = new Map(

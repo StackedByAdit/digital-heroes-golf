@@ -31,6 +31,7 @@ export function CharityManager() {
     event_date: '',
     description: '',
   });
+  const [editingEvent, setEditingEvent] = useState<CharityEvent | null>(null);
 
   const loadCharities = useCallback(async () => {
     setLoading(true);
@@ -161,19 +162,22 @@ export function CharityManager() {
 
     try {
       const response = await fetch(`/api/charities/${eventsCharity.id}/events`, {
-        method: 'POST',
+        method: editingEvent ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventForm),
+        body: JSON.stringify(
+          editingEvent ? { id: editingEvent.id, ...eventForm } : eventForm
+        ),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? 'Failed to add event');
+      if (!response.ok) throw new Error(data.error ?? 'Failed to save event');
 
       setEventForm({ title: '', event_date: '', description: '' });
+      setEditingEvent(null);
       await openEvents(eventsCharity);
       await loadCharities();
-      toast.success('Event added');
+      toast.success(editingEvent ? 'Event updated' : 'Event added');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to add event');
+      toast.error(error instanceof Error ? error.message : 'Failed to save event');
     }
   }
 
@@ -393,20 +397,41 @@ export function CharityManager() {
                   <div>
                     <p className="font-medium">{event.title}</p>
                     <p className="text-gray-500">{event.event_date}</p>
+                    {event.description && (
+                      <p className="mt-1 text-gray-600">{event.description}</p>
+                    )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeEvent(event.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    Remove
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingEvent(event);
+                        setEventForm({
+                          title: event.title,
+                          event_date: event.event_date,
+                          description: event.description ?? '',
+                        });
+                      }}
+                      className="text-gray-600 hover:text-gray-900"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeEvent(event.id)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
 
             <form onSubmit={addEvent} className="mt-6 space-y-3 border-t pt-4">
-              <h3 className="font-medium">Add event</h3>
+              <h3 className="font-medium">
+                {editingEvent ? 'Edit event' : 'Add event'}
+              </h3>
               <input
                 placeholder="Title"
                 value={eventForm.title}
@@ -431,8 +456,20 @@ export function CharityManager() {
                 type="submit"
                 className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white"
               >
-                Add event
+                {editingEvent ? 'Update event' : 'Add event'}
               </button>
+              {editingEvent && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingEvent(null);
+                    setEventForm({ title: '', event_date: '', description: '' });
+                  }}
+                  className="ml-2 rounded-lg border px-4 py-2 text-sm"
+                >
+                  Cancel edit
+                </button>
+              )}
             </form>
           </Dialog.Content>
         </Dialog.Portal>

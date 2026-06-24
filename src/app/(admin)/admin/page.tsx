@@ -30,7 +30,8 @@ export default async function AdminOverviewPage() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+        <OverviewCard label="Total users" value={String(stats.total_users)} />
         <OverviewCard
           label="Active subscribers"
           value={String(stats.active_subscribers)}

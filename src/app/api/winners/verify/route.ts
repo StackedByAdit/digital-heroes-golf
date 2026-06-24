@@ -68,8 +68,13 @@ export async function POST(request: Request) {
     const now = new Date().toISOString();
     const updates =
       action === 'approve'
-        ? { payment_status: 'paid' as const, verified_at: now }
-        : { payment_status: 'rejected' as const, proof_url: null, verified_at: null };
+        ? { payment_status: 'paid' as const, verified_at: now, rejection_notes: null }
+        : {
+            payment_status: 'rejected' as const,
+            proof_url: null,
+            verified_at: null,
+            rejection_notes: notes ?? null,
+          };
 
     if (action === 'reject' && entry.proof_url) {
       await admin.storage.from(WINNER_PROOFS_BUCKET).remove([entry.proof_url]);
