@@ -1,10 +1,16 @@
 import Link from 'next/link';
-import { ScrollReveal } from '@/components/public/ScrollReveal';
+import { createPageMetadata } from '@/lib/seo/metadata';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import {
   calculatePrizePools,
   DEFAULT_MONTHLY_FEE,
 } from '@/lib/drawEngine';
 import { formatCurrency } from '@/lib/utils';
+
+export const metadata = createPageMetadata(
+  'How It Works',
+  'Learn how Digital Heroes Golf subscriptions, score entry, monthly draws, and charity contributions work.',
+);
 
 const EXAMPLE_SUBSCRIBERS = 120;
 
