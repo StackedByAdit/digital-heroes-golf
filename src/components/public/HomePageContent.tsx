@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Heart, PenLine, Trophy } from 'lucide-react';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
+import { LandingAuthActions } from '@/components/auth/LandingAuthActions';
 import { excerpt } from '@/lib/charity/helpers';
 import { formatCurrency } from '@/lib/utils';
 import type { Charity } from '@/types';
@@ -12,6 +13,7 @@ import type { PublicStats } from '@/lib/public/stats';
 type HomePageContentProps = {
   stats: PublicStats;
   featuredCharity: Charity | null;
+  initialAuthenticated?: boolean;
 };
 
 const STEPS = [
@@ -53,7 +55,11 @@ const TESTIMONIALS = [
   },
 ];
 
-export function HomePageContent({ stats, featuredCharity }: HomePageContentProps) {
+export function HomePageContent({
+  stats,
+  featuredCharity,
+  initialAuthenticated = false,
+}: HomePageContentProps) {
   return (
     <>
       <section className="relative flex min-h-[85vh] items-center overflow-hidden bg-brand-green sm:min-h-[92vh]">
@@ -79,20 +85,7 @@ export function HomePageContent({ stats, featuredCharity }: HomePageContentProps
               Enter your scores, join monthly draws, and support the charities that
               matter most to you.
             </p>
-            <div className="mt-10 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center lg:justify-start">
-              <Link
-                href="/pricing"
-                className="btn-interactive btn-cta rounded-full bg-brand-gold px-8 py-3.5 text-center text-sm font-semibold text-brand-charcoal transition hover:bg-brand-gold/90"
-              >
-                Start Playing
-              </Link>
-              <Link
-                href="/charities"
-                className="btn-interactive rounded-full border border-white/30 px-8 py-3.5 text-center text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                See the Charities
-              </Link>
-            </div>
+            <LandingAuthActions initialAuthenticated={initialAuthenticated} variant="hero" />
           </ScrollReveal>
         </div>
       </section>
@@ -243,12 +236,7 @@ export function HomePageContent({ stats, featuredCharity }: HomePageContentProps
             Join a community where every round supports a cause — and every month
             brings a new chance to win.
           </p>
-          <Link
-            href="/pricing"
-            className="btn-interactive btn-cta mt-8 inline-flex rounded-full bg-brand-gold px-10 py-4 text-sm font-semibold text-brand-charcoal transition hover:bg-brand-gold/90"
-          >
-            Subscribe today
-          </Link>
+          <LandingAuthActions initialAuthenticated={initialAuthenticated} variant="footer" />
           <p className="mt-4 text-xs text-brand-cream/60">
             Cancel anytime on monthly plans. 14-day money-back guarantee on your first month.
           </p>

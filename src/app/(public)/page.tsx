@@ -28,10 +28,21 @@ async function getFeaturedCharity() {
 }
 
 export default async function HomePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const [stats, featuredCharity] = await Promise.all([
     getPublicStats(),
     getFeaturedCharity(),
   ]);
 
-  return <HomePageContent stats={stats} featuredCharity={featuredCharity} />;
+  return (
+    <HomePageContent
+      stats={stats}
+      featuredCharity={featuredCharity}
+      initialAuthenticated={Boolean(user)}
+    />
+  );
 }

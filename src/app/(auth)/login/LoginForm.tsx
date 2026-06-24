@@ -156,8 +156,8 @@ export default function LoginForm() {
 
       <p className="mt-6 text-center text-sm text-brand-charcoal/60">
         Don&apos;t have an account?{' '}
-        <Link href="/pricing" className="font-medium text-brand-gold hover:underline">
-          Start here
+        <Link href="/signup" className="font-medium text-brand-gold hover:underline">
+          Sign up
         </Link>
       </p>
     </div>

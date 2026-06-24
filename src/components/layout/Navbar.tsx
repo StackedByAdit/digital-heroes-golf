@@ -2,43 +2,33 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, LogIn, Menu, X } from 'lucide-react';
+import { LayoutDashboard, LogIn, Menu, UserPlus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useAuthSession } from '@/hooks/useAuthSession';
 import { cn } from '@/lib/utils';
 
 const NAV_LINKS = [
   { href: '/how-it-works', label: 'How It Works' },
   { href: '/charities', label: 'Charities' },
+  { href: '/donate', label: 'Donate' },
   { href: '/pricing', label: 'Pricing' },
 ];
 
-export function Navbar() {
+type NavbarProps = {
+  initialAuthenticated?: boolean;
+};
+
+export function Navbar({ initialAuthenticated = false }: NavbarProps) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isAuthenticated } = useAuthSession(initialAuthenticated);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setIsAuthenticated(Boolean(data.user));
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(Boolean(session?.user));
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -91,13 +81,14 @@ export function Navbar() {
                 className="btn-interactive inline-flex items-center gap-2 rounded-full border border-brand-green/25 px-4 py-2 text-sm font-medium text-brand-green transition hover:border-brand-green hover:bg-brand-green/5"
               >
                 <LogIn className="h-4 w-4" />
-                Login
+                Log in
               </Link>
               <Link
-                href="/pricing"
-                className="btn-interactive btn-cta rounded-full bg-brand-gold px-5 py-2.5 text-sm font-semibold text-brand-charcoal transition hover:bg-brand-gold/90"
+                href="/signup"
+                className="btn-interactive btn-cta inline-flex items-center gap-2 rounded-full bg-brand-gold px-5 py-2.5 text-sm font-semibold text-brand-charcoal transition hover:bg-brand-gold/90"
               >
-                Start Playing
+                <UserPlus className="h-4 w-4" />
+                Sign up
               </Link>
             </>
           )}
@@ -145,13 +136,13 @@ export function Navbar() {
                     href="/login"
                     className="btn-interactive rounded-full border border-brand-green/25 px-4 py-2.5 text-center text-sm font-medium text-brand-green"
                   >
-                    Login
+                    Log in
                   </Link>
                   <Link
-                    href="/pricing"
+                    href="/signup"
                     className="btn-interactive btn-cta rounded-full bg-brand-gold px-4 py-2.5 text-center text-sm font-semibold text-brand-charcoal"
                   >
-                    Start Playing
+                    Sign up
                   </Link>
                 </>
               )}
