@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Trophy, Users, Gift, Award, BarChart3 } from 'lucide-react';
 import { getAdminStats } from '@/lib/admin/stats';
 import { formatCurrency } from '@/lib/utils';
 
@@ -29,6 +29,37 @@ export default async function AdminOverviewPage() {
           </div>
         </div>
       )}
+
+      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-gray-900">Admin modules</h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Jump to any section of the admin panel.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            { href: '/admin/users', label: 'User Management', icon: Users, desc: 'Profiles, scores, subscriptions' },
+            { href: '/admin/draws', label: 'Draw Management', icon: Trophy, desc: 'Configure, simulate, publish' },
+            { href: '/admin/charities', label: 'Charity Management', icon: Gift, desc: 'Partners, media, events' },
+            { href: '/admin/winners', label: 'Winners', icon: Award, desc: 'Verify proofs, mark payouts' },
+            { href: '/admin/reports', label: 'Reports & Analytics', icon: BarChart3, desc: 'Platform performance' },
+          ].map(({ href, label, icon: Icon, desc }) => (
+            <Link
+              key={href}
+              href={href}
+              className="group flex items-start gap-3 rounded-lg border border-gray-100 p-4 transition hover:border-red-200 hover:bg-red-50/50"
+            >
+              <div className="rounded-lg bg-red-50 p-2 text-red-700 group-hover:bg-red-100">
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-gray-900">{label}</p>
+                <p className="text-xs text-gray-500">{desc}</p>
+              </div>
+              <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-gray-300 group-hover:text-red-600" />
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <OverviewCard label="Total users" value={String(stats.total_users)} />

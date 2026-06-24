@@ -12,6 +12,7 @@ import {
   Trophy,
   Users,
   X,
+  Home,
 } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -86,6 +87,15 @@ export function AdminShell({ adminName, children }: AdminShellProps) {
               );
             })}
           </nav>
+          <div className="border-t border-red-100 p-3">
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+            >
+              <Home className="h-4 w-4" />
+              Member Dashboard
+            </Link>
+          </div>
         </aside>
 
         {mobileOpen && (
@@ -114,15 +124,24 @@ export function AdminShell({ adminName, children }: AdminShellProps) {
               </div>
             </div>
 
-            <form action="/api/auth/signout" method="post">
-              <button
-                type="submit"
-                className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            <div className="flex items-center gap-2">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-green/25 bg-brand-green/5 px-3 py-1.5 text-sm font-medium text-brand-green hover:bg-brand-green/10"
               >
-                <LogOut className="h-4 w-4" />
-                Logout
-              </button>
-            </form>
+                <Home className="h-4 w-4" />
+                <span className="hidden sm:inline">Member Dashboard</span>
+              </Link>
+              <form action="/api/auth/signout" method="post">
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </button>
+              </form>
+            </div>
           </header>
 
           <main className="flex-1 p-4 lg:p-6">{children}</main>
