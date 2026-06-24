@@ -72,7 +72,7 @@ export function DrawHistory({ draws }: DrawHistoryProps) {
                   <td className="px-4 py-3 text-right">
                     {isWinner && (
                       <Link
-                        href="/dashboard"
+                        href={`/dashboard#winner-${entry.id}`}
                         className="text-xs font-medium text-emerald-700 hover:text-emerald-900"
                       >
                         {displayStatus === 'pending' || displayStatus === 'rejected'

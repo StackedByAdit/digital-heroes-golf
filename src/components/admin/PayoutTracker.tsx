@@ -47,7 +47,7 @@ export function PayoutTracker({
       ),
       overdueCount: overdue.length,
       overdueTotal: overdue.reduce((sum, w) => sum + w.prize_amount, 0),
-      approvableIds: [...pending, ...underReview].map((w) => w.id),
+      approvableIds: underReview.map((w) => w.id),
     };
   }, [winners]);
 

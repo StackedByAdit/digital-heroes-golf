@@ -6,6 +6,7 @@ import {
   buildProofStoragePath,
   createSignedProofUrl,
   extensionForMime,
+  getWinnerDisplayStatus,
   isWinningEntry,
   MAX_PROOF_FILE_BYTES,
   WINNER_PROOFS_BUCKET,
@@ -126,6 +127,16 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Proof cannot be uploaded for this entry' },
         { status: 400 }
+      );
+    }
+
+    if (
+      entry.proof_url &&
+      getWinnerDisplayStatus(entry) === 'under_review'
+    ) {
+      return NextResponse.json(
+        { error: 'Proof is already submitted and under review' },
+        { status: 409 }
       );
     }
 

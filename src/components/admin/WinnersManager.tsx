@@ -216,9 +216,7 @@ export function WinnersManager() {
               <tbody className="divide-y divide-gray-100">
                 {filtered.map((winner) => {
                   const displayStatus = getWinnerDisplayStatus(winner);
-                  const canAct =
-                    displayStatus === 'under_review' ||
-                    displayStatus === 'pending';
+                  const canAct = displayStatus === 'under_review';
 
                   return (
                     <tr key={winner.id}>

@@ -39,7 +39,8 @@ export function StatCards({
             <span
               className={cn(
                 'mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold capitalize',
-                statusStyles[profile.subscription_status]
+                statusStyles[profile.subscription_status] ??
+                  'bg-gray-100 text-gray-700',
               )}
             >
               {profile.subscription_status.replace('_', ' ')}

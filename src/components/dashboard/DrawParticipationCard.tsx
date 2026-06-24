@@ -19,11 +19,11 @@ export function DrawParticipationCard({
 }: DrawParticipationCardProps) {
   const recentDraws = drawHistory.filter((draw) => draw.my_entry).slice(0, 3);
   const drawScores = scores
+    .slice()
+    .sort((a, b) => b.score_date.localeCompare(a.score_date))
     .slice(0, 5)
-    .sort(
-      (a, b) =>
-        new Date(a.score_date).getTime() - new Date(b.score_date).getTime()
-    )
+    .slice()
+    .sort((a, b) => a.score_date.localeCompare(b.score_date))
     .map((score) => score.score);
 
   return (
