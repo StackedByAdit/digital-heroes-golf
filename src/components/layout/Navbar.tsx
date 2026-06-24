@@ -51,7 +51,7 @@ export function Navbar() {
         'sticky top-0 z-50 transition-all duration-300',
         scrolled
           ? 'border-b border-brand-green/10 bg-brand-cream/85 shadow-sm backdrop-blur-md'
-          : 'bg-transparent'
+          : 'bg-transparent',
       )}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -64,9 +64,10 @@ export function Navbar() {
             <Link
               key={link.href}
               href={link.href}
+              data-active={pathname === link.href ? 'true' : 'false'}
               className={cn(
-                'text-sm font-medium transition hover:text-brand-gold',
-                pathname === link.href ? 'text-brand-gold' : 'text-brand-charcoal/80'
+                'nav-link-underline btn-interactive text-sm font-medium transition hover:text-brand-gold',
+                pathname === link.href ? 'text-brand-gold' : 'text-brand-charcoal/80',
               )}
             >
               {link.label}
@@ -78,7 +79,7 @@ export function Navbar() {
           {isAuthenticated ? (
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-green/90"
+              className="btn-interactive btn-cta inline-flex items-center gap-2 rounded-full bg-brand-green px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-green/90"
             >
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
@@ -87,14 +88,14 @@ export function Navbar() {
             <>
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 rounded-full border border-brand-green/25 px-4 py-2 text-sm font-medium text-brand-green transition hover:border-brand-green hover:bg-brand-green/5"
+                className="btn-interactive inline-flex items-center gap-2 rounded-full border border-brand-green/25 px-4 py-2 text-sm font-medium text-brand-green transition hover:border-brand-green hover:bg-brand-green/5"
               >
                 <LogIn className="h-4 w-4" />
                 Login
               </Link>
               <Link
                 href="/pricing"
-                className="rounded-full bg-brand-gold px-5 py-2.5 text-sm font-semibold text-brand-charcoal transition hover:bg-brand-gold/90"
+                className="btn-interactive btn-cta rounded-full bg-brand-gold px-5 py-2.5 text-sm font-semibold text-brand-charcoal transition hover:bg-brand-gold/90"
               >
                 Start Playing
               </Link>
@@ -104,9 +105,10 @@ export function Navbar() {
 
         <button
           type="button"
-          className="rounded-md p-2 text-brand-green md:hidden"
+          className="btn-interactive rounded-md p-2 text-brand-green md:hidden"
           onClick={() => setMobileOpen((open) => !open)}
           aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileOpen}
         >
           {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
@@ -114,21 +116,26 @@ export function Navbar() {
 
       {mobileOpen && (
         <div className="border-t border-brand-green/10 bg-brand-cream px-4 py-4 md:hidden">
-          <nav className="flex flex-col gap-3">
+          <nav className="flex flex-col gap-1">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-brand-charcoal hover:bg-brand-green/5"
+                className={cn(
+                  'btn-interactive rounded-lg px-3 py-2.5 text-sm font-medium transition',
+                  pathname === link.href
+                    ? 'bg-brand-green/10 text-brand-gold'
+                    : 'text-brand-charcoal hover:bg-brand-green/5',
+                )}
               >
                 {link.label}
               </Link>
             ))}
-            <div className="mt-2 flex flex-col gap-2 border-t border-brand-green/10 pt-4">
+            <div className="mt-3 flex flex-col gap-2 border-t border-brand-green/10 pt-4">
               {isAuthenticated ? (
                 <Link
                   href="/dashboard"
-                  className="rounded-full bg-brand-green px-4 py-2.5 text-center text-sm font-semibold text-white"
+                  className="btn-interactive btn-cta rounded-full bg-brand-green px-4 py-2.5 text-center text-sm font-semibold text-white"
                 >
                   Dashboard
                 </Link>
@@ -136,13 +143,13 @@ export function Navbar() {
                 <>
                   <Link
                     href="/login"
-                    className="rounded-full border border-brand-green/25 px-4 py-2.5 text-center text-sm font-medium text-brand-green"
+                    className="btn-interactive rounded-full border border-brand-green/25 px-4 py-2.5 text-center text-sm font-medium text-brand-green"
                   >
                     Login
                   </Link>
                   <Link
                     href="/pricing"
-                    className="rounded-full bg-brand-gold px-4 py-2.5 text-center text-sm font-semibold text-brand-charcoal"
+                    className="btn-interactive btn-cta rounded-full bg-brand-gold px-4 py-2.5 text-center text-sm font-semibold text-brand-charcoal"
                   >
                     Start Playing
                   </Link>

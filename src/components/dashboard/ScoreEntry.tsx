@@ -195,7 +195,7 @@ export function ScoreEntry({ initialScores }: ScoreEntryProps) {
           <button
             type="button"
             onClick={openAddForm}
-            className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+            className="btn-interactive inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
           >
             <Plus className="h-4 w-4" />
             {atCapacity ? 'Replace Oldest' : 'Add Score'}
@@ -302,7 +302,7 @@ export function ScoreEntry({ initialScores }: ScoreEntryProps) {
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+              className="btn-interactive rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
             >
               {submitting
                 ? 'Saving…'
@@ -329,72 +329,124 @@ export function ScoreEntry({ initialScores }: ScoreEntryProps) {
             No scores yet. Add your first score below.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                    Date
-                  </th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">
-                    Score
-                  </th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-700">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {scores.map((entry) => {
-                  const isOldestCandidate =
-                    atCapacity && oldestScore?.id === entry.id;
+          <>
+            <div className="divide-y divide-gray-100 md:hidden">
+              {scores.map((entry) => {
+                const isOldestCandidate =
+                  atCapacity && oldestScore?.id === entry.id;
 
-                  return (
-                    <tr
-                      key={entry.id}
-                      className={cn(
-                        isOldestCandidate && 'bg-amber-50/70'
-                      )}
-                    >
-                      <td className="px-4 py-3 text-gray-900">
-                        <div className="flex flex-col">
-                          <span>{formatDate(entry.score_date)}</span>
-                          {isOldestCandidate && (
-                            <span className="text-xs font-medium text-amber-700">
-                              Will be replaced on next add
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-semibold text-gray-900">
-                        {entry.score}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => openEditForm(entry)}
-                            className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteTarget(entry)}
-                            className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                return (
+                  <article
+                    key={entry.id}
+                    className={cn(
+                      'score-row-hover p-4',
+                      isOldestCandidate && 'bg-amber-50/70',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {formatDate(entry.score_date)}
+                        </p>
+                        {isOldestCandidate && (
+                          <p className="mt-1 text-xs font-medium text-amber-700">
+                            Will be replaced on next add
+                          </p>
+                        )}
+                      </div>
+                      <p className="text-2xl font-bold text-gray-900">{entry.score}</p>
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditForm(entry)}
+                        className="btn-interactive inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-gray-200 px-2 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget(entry)}
+                        className="btn-interactive inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-red-200 px-2 py-2 text-xs font-medium text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      Date
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-700">
+                      Score
+                    </th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-700">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {scores.map((entry) => {
+                    const isOldestCandidate =
+                      atCapacity && oldestScore?.id === entry.id;
+
+                    return (
+                      <tr
+                        key={entry.id}
+                        className={cn(
+                          'score-row-hover',
+                          isOldestCandidate && 'bg-amber-50/70',
+                        )}
+                      >
+                        <td className="px-4 py-3 text-gray-900">
+                          <div className="flex flex-col">
+                            <span>{formatDate(entry.score_date)}</span>
+                            {isOldestCandidate && (
+                              <span className="text-xs font-medium text-amber-700">
+                                Will be replaced on next add
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 font-semibold text-gray-900">
+                          {entry.score}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openEditForm(entry)}
+                              className="btn-interactive inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget(entry)}
+                              className="btn-interactive inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

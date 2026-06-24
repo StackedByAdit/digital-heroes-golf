@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Check, ShieldCheck, Heart, HelpCircle } from 'lucide-react';
-import { ScrollReveal } from '@/components/public/ScrollReveal';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import {
   SUBSCRIPTION_MONTHLY_GBP,
   SUBSCRIPTION_YEARLY_GBP,
@@ -175,7 +175,7 @@ function PlanCard({
   badge: string | null;
 }) {
   return (
-    <div className="relative flex h-full flex-col rounded-2xl border border-brand-green/10 bg-white p-8 shadow-sm transition hover:shadow-md">
+    <div className="relative flex h-full flex-col rounded-2xl border border-brand-green/10 bg-white p-8 shadow-sm transition dashboard-card">
       {badge && (
         <span className="absolute -top-3 right-6 rounded-full bg-brand-gold px-3 py-1 text-xs font-bold text-brand-charcoal">
           {badge}
@@ -201,7 +201,7 @@ function PlanCard({
       </ul>
       <Link
         href={ctaHref}
-        className="mt-8 block rounded-full bg-brand-green py-3.5 text-center text-sm font-semibold text-white transition hover:bg-brand-green/90"
+        className="btn-interactive btn-cta mt-8 block rounded-full bg-brand-green py-3.5 text-center text-sm font-semibold text-white transition hover:bg-brand-green/90"
       >
         Get Started
       </Link>

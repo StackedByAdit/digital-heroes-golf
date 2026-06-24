@@ -31,8 +31,8 @@ export function StatCards({
   };
 
   return (
-    <div className="grid grid-cols-12 gap-4">
-      <StatCard className="col-span-12 sm:col-span-6 xl:col-span-3" title="Subscription">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <StatCard title="Subscription">
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="text-lg font-semibold text-gray-900">{planLabel}</p>
@@ -60,7 +60,7 @@ export function StatCards({
         </Link>
       </StatCard>
 
-      <StatCard className="col-span-12 sm:col-span-6 xl:col-span-3" title="Next Draw">
+      <StatCard title="Next Draw">
         <p className="text-lg font-semibold text-gray-900">{nextDraw.label}</p>
         <p className="mt-2 text-sm text-gray-600">
           Est. prize pool: {formatCurrency(nextDraw.estimatedPool)}
@@ -70,7 +70,7 @@ export function StatCards({
         </p>
       </StatCard>
 
-      <StatCard className="col-span-12 sm:col-span-6 xl:col-span-3" title="Total Winnings">
+      <StatCard title="Total Winnings">
         <p className="text-2xl font-bold text-gray-900">
           {formatCurrency(winnings.totalWon)}
         </p>
@@ -85,7 +85,7 @@ export function StatCards({
         </Link>
       </StatCard>
 
-      <StatCard className="col-span-12 sm:col-span-6 xl:col-span-3" title="Charity Impact">
+      <StatCard title="Charity Impact">
         <p className="text-2xl font-bold text-gray-900">
           {formatCurrency(charity.lifetimeContribution)}
         </p>
@@ -108,19 +108,12 @@ export function StatCards({
 function StatCard({
   title,
   children,
-  className,
 }: {
   title: string;
   children: React.ReactNode;
-  className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        'rounded-xl border border-gray-200 bg-white p-5 shadow-sm',
-        className
-      )}
-    >
+    <div className="dashboard-card rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       <p className="text-sm font-medium text-gray-500">{title}</p>
       <div className="mt-3">{children}</div>
     </div>

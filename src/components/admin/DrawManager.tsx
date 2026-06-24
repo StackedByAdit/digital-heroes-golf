@@ -4,6 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Eye, Play, Plus, Rocket, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { cn, formatCurrency, getMonthKey } from '@/lib/utils';
 import type { Draw, DrawStatus, DrawType } from '@/types';
 import type { DrawWithMeta } from '@/lib/draw/processing';
@@ -189,7 +190,7 @@ export function DrawManager() {
             <button
               type="submit"
               disabled={creating}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+              className="btn-interactive inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
             >
               <Plus className="h-4 w-4" />
               {creating ? 'Creating…' : 'Create Draw'}
@@ -203,78 +204,89 @@ export function DrawManager() {
           <h2 className="text-lg font-semibold text-gray-900">Draws</h2>
         </div>
         {loading ? (
-          <div className="px-6 py-10 text-sm text-gray-500">Loading draws…</div>
+          <div className="flex items-center justify-center gap-3 px-6 py-10 text-sm text-gray-500">
+            <LoadingSpinner size="sm" />
+            Loading draws…
+          </div>
         ) : draws.length === 0 ? (
           <div className="px-6 py-10 text-sm text-gray-500">No draws yet.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold">Month</th>
-                  <th className="px-4 py-3 text-left font-semibold">Type</th>
-                  <th className="px-4 py-3 text-left font-semibold">Status</th>
-                  <th className="px-4 py-3 text-left font-semibold">Winners</th>
-                  <th className="px-4 py-3 text-right font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {draws.map((draw) => (
-                  <tr key={draw.id}>
-                    <td className="px-4 py-3 font-medium">{draw.month}</td>
-                    <td className="px-4 py-3 capitalize">{draw.draw_type}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          'rounded-full px-2 py-1 text-xs font-semibold capitalize',
-                          STATUS_STYLES[draw.status]
-                        )}
-                      >
-                        {draw.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">{totalWinners(draw)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
-                        {(draw.status === 'draft' || draw.status === 'simulated') && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => handleSimulate(draw)}
-                              disabled={busyDrawId === draw.id}
-                              className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium hover:bg-gray-50"
-                            >
-                              <Play className="h-3.5 w-3.5" />
-                              Simulate
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openPublishDialog(draw)}
-                              disabled={busyDrawId === draw.id}
-                              className="inline-flex items-center gap-1 rounded-md border border-emerald-200 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
-                            >
-                              <Rocket className="h-3.5 w-3.5" />
-                              Publish
-                            </button>
-                          </>
-                        )}
-                        {draw.status === 'published' && (
-                          <button
-                            type="button"
-                            onClick={() => setViewDraw(draw)}
-                            className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium hover:bg-gray-50"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            View Results
-                          </button>
-                        )}
-                      </div>
-                    </td>
+          <>
+            <div className="divide-y divide-gray-100 md:hidden">
+              {draws.map((draw) => (
+                <article key={draw.id} className="dashboard-card p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-gray-900">{draw.month}</p>
+                      <p className="mt-1 text-xs capitalize text-gray-500">{draw.draw_type}</p>
+                    </div>
+                    <span
+                      className={cn(
+                        'rounded-full px-2 py-1 text-xs font-semibold capitalize',
+                        STATUS_STYLES[draw.status],
+                      )}
+                    >
+                      {draw.status}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm text-gray-600">
+                    Winners: <span className="font-medium text-gray-900">{totalWinners(draw)}</span>
+                  </p>
+                  <DrawRowActions
+                    draw={draw}
+                    busyDrawId={busyDrawId}
+                    onSimulate={handleSimulate}
+                    onPublish={openPublishDialog}
+                    onView={setViewDraw}
+                    className="mt-4 flex flex-wrap gap-2"
+                  />
+                </article>
+              ))}
+            </div>
+
+            <div className="hidden overflow-x-auto md:block">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold">Month</th>
+                    <th className="px-4 py-3 text-left font-semibold">Type</th>
+                    <th className="px-4 py-3 text-left font-semibold">Status</th>
+                    <th className="px-4 py-3 text-left font-semibold">Winners</th>
+                    <th className="px-4 py-3 text-right font-semibold">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {draws.map((draw) => (
+                    <tr key={draw.id} className="score-row-hover">
+                      <td className="px-4 py-3 font-medium">{draw.month}</td>
+                      <td className="px-4 py-3 capitalize">{draw.draw_type}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={cn(
+                            'rounded-full px-2 py-1 text-xs font-semibold capitalize',
+                            STATUS_STYLES[draw.status],
+                          )}
+                        >
+                          {draw.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">{totalWinners(draw)}</td>
+                      <td className="px-4 py-3">
+                        <DrawRowActions
+                          draw={draw}
+                          busyDrawId={busyDrawId}
+                          onSimulate={handleSimulate}
+                          onPublish={openPublishDialog}
+                          onView={setViewDraw}
+                          className="flex justify-end gap-2"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -360,6 +372,59 @@ export function DrawManager() {
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+    </div>
+  );
+}
+
+function DrawRowActions({
+  draw,
+  busyDrawId,
+  onSimulate,
+  onPublish,
+  onView,
+  className,
+}: {
+  draw: DrawWithMeta;
+  busyDrawId: string | null;
+  onSimulate: (draw: Draw) => void;
+  onPublish: (draw: DrawWithMeta) => void;
+  onView: (draw: DrawWithMeta) => void;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      {(draw.status === 'draft' || draw.status === 'simulated') && (
+        <>
+          <button
+            type="button"
+            onClick={() => onSimulate(draw)}
+            disabled={busyDrawId === draw.id}
+            className="btn-interactive inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium hover:bg-gray-50"
+          >
+            <Play className="h-3.5 w-3.5" />
+            Simulate
+          </button>
+          <button
+            type="button"
+            onClick={() => onPublish(draw)}
+            disabled={busyDrawId === draw.id}
+            className="btn-interactive inline-flex items-center gap-1 rounded-md border border-emerald-200 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+          >
+            <Rocket className="h-3.5 w-3.5" />
+            Publish
+          </button>
+        </>
+      )}
+      {draw.status === 'published' && (
+        <button
+          type="button"
+          onClick={() => onView(draw)}
+          className="btn-interactive inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium hover:bg-gray-50"
+        >
+          <Eye className="h-3.5 w-3.5" />
+          View Results
+        </button>
+      )}
     </div>
   );
 }
