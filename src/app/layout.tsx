@@ -1,22 +1,24 @@
 import type { Metadata } from 'next';
-import localFont from 'next/font/local';
+import { Inter, Playfair_Display } from 'next/font/google';
 import { Toaster } from 'sonner';
 import '@/styles/globals.css';
 
-const geistSans = localFont({
-  src: './fonts/GeistVF.woff',
-  variable: '--font-geist-sans',
-  weight: '100 900',
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
 });
-const geistMono = localFont({
-  src: './fonts/GeistMonoVF.woff',
-  variable: '--font-geist-mono',
-  weight: '100 900',
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
   title: 'Digital Heroes Golf',
-  description: 'Golf score lottery for charity',
+  description:
+    'Play golf, win prizes, and support the charities that matter most to you.',
 };
 
 export default function RootLayout({
@@ -26,9 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
         {children}
         <Toaster richColors position="top-right" />
       </body>

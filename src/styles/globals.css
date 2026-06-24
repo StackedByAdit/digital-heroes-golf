@@ -3,25 +3,110 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #f8f6f1;
+  --foreground: #1c1c1e;
+  --brand-green: #1a3c2e;
+  --brand-gold: #c9a84c;
+  --brand-cream: #f8f6f1;
+  --brand-charcoal: #1c1c1e;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+@keyframes float-ball-1 {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0.15;
+  }
+  50% {
+    transform: translate(120px, -80px) rotate(180deg);
+    opacity: 0.35;
+  }
+}
+
+@keyframes float-ball-2 {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 0.1;
+  }
+  50% {
+    transform: translate(-90px, 60px) rotate(-120deg);
+    opacity: 0.25;
+  }
+}
+
+@keyframes float-ball-3 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.12;
+  }
+  50% {
+    transform: translate(60px, 100px);
+    opacity: 0.28;
+  }
+}
+
+.hero-ball {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 30% 30%, #ffffff 0%, #c9a84c 45%, #1a3c2e 100%);
+  pointer-events: none;
+}
+
+.hero-ball-1 {
+  width: 18px;
+  height: 18px;
+  top: 18%;
+  left: 12%;
+  animation: float-ball-1 14s ease-in-out infinite;
+}
+
+.hero-ball-2 {
+  width: 12px;
+  height: 12px;
+  top: 55%;
+  right: 18%;
+  animation: float-ball-2 18s ease-in-out infinite;
+}
+
+.hero-ball-3 {
+  width: 22px;
+  height: 22px;
+  bottom: 22%;
+  left: 35%;
+  animation: float-ball-3 16s ease-in-out infinite;
+}
+
+.hero-ball-4 {
+  width: 10px;
+  height: 10px;
+  top: 30%;
+  right: 32%;
+  animation: float-ball-2 20s ease-in-out infinite reverse;
+}
+
+.hero-path {
+  position: absolute;
+  inset: 0;
+  opacity: 0.08;
+  background-image: radial-gradient(
+      circle at 20% 80%,
+      var(--brand-gold) 1px,
+      transparent 1px
+    ),
+    radial-gradient(circle at 80% 20%, var(--brand-gold) 1px, transparent 1px);
+  background-size: 48px 48px;
 }
