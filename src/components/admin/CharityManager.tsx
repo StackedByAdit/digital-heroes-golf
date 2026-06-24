@@ -1,11 +1,12 @@
 'use client';
 
 import * as Dialog from '@radix-ui/react-dialog';
-import { Pencil, Plus, Star, Trash2, X } from 'lucide-react';
+import { Pencil, Plus, Star, Trash2, Upload, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { CHARITY_CATEGORIES } from '@/lib/charity/categories';
 import { cn } from '@/lib/utils';
-import type { Charity, CharityEvent } from '@/types';
+import type { Charity, CharityCategory, CharityEvent } from '@/types';
 
 type CharityRow = Charity & { event_count?: number };
 
@@ -21,10 +22,12 @@ export function CharityManager() {
   const [form, setForm] = useState({
     name: '',
     description: '',
+    category: 'community' as CharityCategory,
     image_url: '',
     website_url: '',
     is_featured: false,
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const [eventForm, setEventForm] = useState({
     title: '',
@@ -61,10 +64,12 @@ export function CharityManager() {
     setForm({
       name: '',
       description: '',
+      category: 'community',
       image_url: '',
       website_url: '',
       is_featured: false,
     });
+    setImageFile(null);
     setPanelOpen(true);
   }
 
@@ -73,10 +78,12 @@ export function CharityManager() {
     setForm({
       name: charity.name,
       description: charity.description,
+      category: charity.category ?? 'community',
       image_url: charity.image_url ?? '',
       website_url: charity.website_url ?? '',
       is_featured: charity.is_featured,
     });
+    setImageFile(null);
     setPanelOpen(true);
   }
 
@@ -87,6 +94,7 @@ export function CharityManager() {
     const payload = {
       name: form.name,
       description: form.description,
+      category: form.category,
       image_url: form.image_url || null,
       website_url: form.website_url || null,
       is_featured: form.is_featured,
@@ -103,6 +111,22 @@ export function CharityManager() {
       );
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'Save failed');
+
+      const charityId = editing?.id ?? data.charity?.id;
+      if (charityId && imageFile) {
+        const uploadData = new FormData();
+        uploadData.append('charity_id', charityId);
+        uploadData.append('file', imageFile);
+
+        const uploadResponse = await fetch('/api/admin/charities/upload-image', {
+          method: 'POST',
+          body: uploadData,
+        });
+        const uploadResult = await uploadResponse.json();
+        if (!uploadResponse.ok) {
+          throw new Error(uploadResult.error ?? 'Image upload failed');
+        }
+      }
 
       toast.success(editing ? 'Charity updated' : 'Charity created');
       setPanelOpen(false);
@@ -223,6 +247,7 @@ export function CharityManager() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold">Name</th>
+                  <th className="px-4 py-3 text-left font-semibold">Category</th>
                   <th className="px-4 py-3 text-left font-semibold">Featured</th>
                   <th className="px-4 py-3 text-left font-semibold">Active</th>
                   <th className="px-4 py-3 text-left font-semibold">Events</th>
@@ -233,6 +258,9 @@ export function CharityManager() {
                 {charities.map((charity) => (
                   <tr key={charity.id} className={cn(!charity.is_active && 'opacity-60')}>
                     <td className="px-4 py-3 font-medium">{charity.name}</td>
+                    <td className="px-4 py-3 capitalize text-gray-600">
+                      {charity.category?.replace('_', ' ') ?? 'community'}
+                    </td>
                     <td className="px-4 py-3">
                       <button
                         type="button"
@@ -331,7 +359,44 @@ export function CharityManager() {
                     required
                   />
                 </Field>
-                <Field label="Image URL">
+                <Field label="Category">
+                  <select
+                    value={form.category}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        category: e.target.value as CharityCategory,
+                      })
+                    }
+                    className="w-full rounded-lg border px-3 py-2 text-sm"
+                  >
+                    {CHARITY_CATEGORIES.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Image upload">
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 py-3 text-sm text-gray-600 hover:bg-gray-50">
+                    <Upload className="h-4 w-4" />
+                    {imageFile ? imageFile.name : 'Choose JPEG, PNG, GIF, or WebP (max 5 MB)'}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      className="sr-only"
+                      onChange={(event) =>
+                        setImageFile(event.target.files?.[0] ?? null)
+                      }
+                    />
+                  </label>
+                  {form.image_url && !imageFile && (
+                    <p className="mt-2 truncate text-xs text-gray-500">
+                      Current: {form.image_url}
+                    </p>
+                  )}
+                </Field>
+                <Field label="Image URL (optional override)">
                   <input
                     value={form.image_url}
                     onChange={(e) => setForm({ ...form, image_url: e.target.value })}

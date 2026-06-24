@@ -8,6 +8,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const featured = searchParams.get('featured') === 'true';
   const search = searchParams.get('search')?.trim().toLowerCase();
+  const category = searchParams.get('category')?.trim();
   const includeInactive = searchParams.get('include_inactive') === 'true';
 
   const { createClient } = await import('@/lib/supabase/server');
@@ -36,6 +37,10 @@ export async function GET(request: Request) {
 
     if (featured) {
       query = query.eq('is_featured', true);
+    }
+
+    if (category) {
+      query = query.eq('category', category);
     }
 
     const { data, error } = await query;

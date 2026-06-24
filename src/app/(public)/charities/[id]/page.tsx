@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { charityCategoryLabel } from '@/lib/charity/categories';
 import { fetchEventsForCharity } from '@/lib/charity/server';
 import { formatDate } from '@/lib/utils';
 
@@ -74,15 +75,24 @@ export default async function CharityProfilePage({ params }: PageProps) {
 
         <aside className="space-y-4">
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">Support this charity</h2>
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-green">
+              {charityCategoryLabel(charity.category)}
+            </p>
+            <h2 className="mt-2 text-lg font-semibold text-gray-900">Support this charity</h2>
             <p className="mt-2 text-sm text-gray-600">
-              Choose this charity when you join Digital Heroes Golf, or update your
-              selection anytime from your dashboard.
+              Subscribe and allocate part of your membership, or make a one-off
+              donation today.
             </p>
             <div className="mt-5 flex flex-col gap-3">
               <Link
+                href={`/donate?charity=${charity.id}`}
+                className="inline-flex justify-center rounded-lg bg-brand-gold px-4 py-2 text-sm font-semibold text-brand-charcoal hover:bg-brand-gold/90"
+              >
+                Donate now
+              </Link>
+              <Link
                 href={`/signup?charity=${charity.id}`}
-                className="inline-flex justify-center rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+                className="inline-flex justify-center rounded-lg bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-brand-green/90"
               >
                 Sign up & support
               </Link>
