@@ -12,9 +12,9 @@ const PROTECTED_API_PREFIXES = [
   '/api/draws',
   '/api/scores',
   '/api/subscriptions',
-  '/api/charities',
   '/api/winners',
   '/api/admin',
+  '/api/user',
 ];
 
 const PUBLIC_API_PREFIXES = ['/api/auth', '/api/webhooks'];
@@ -158,7 +158,8 @@ export async function middleware(request: NextRequest) {
       if (
         !pathname.startsWith('/api/admin') &&
         subscriptionStatus !== 'active' &&
-        !pathname.startsWith('/api/subscriptions')
+        !pathname.startsWith('/api/subscriptions') &&
+        !pathname.startsWith('/api/user')
       ) {
         return finalizeResponse(
           sessionResponse,
