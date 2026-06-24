@@ -6,6 +6,18 @@ export type DrawStatus = 'draft' | 'simulated' | 'published';
 export type DrawType = 'random' | 'algorithmic';
 export type MatchType = '5-match' | '4-match' | '3-match';
 
+export type CharityCategory =
+  | 'health'
+  | 'mental_health'
+  | 'environment'
+  | 'community'
+  | 'education'
+  | 'animals'
+  | 'veterans'
+  | 'youth';
+
+export type DonationStatus = 'pending' | 'completed' | 'failed';
+
 export interface Profile {
   id: string;
   email: string;
@@ -34,6 +46,7 @@ export interface Charity {
   id: string;
   name: string;
   description: string;
+  category: CharityCategory;
   image_url: string | null;
   website_url: string | null;
   is_featured: boolean;
@@ -85,3 +98,38 @@ export interface PrizePool {
   rollover: number;
   subscriber_count: number;
 }
+
+export interface Donation {
+  id: string;
+  user_id: string | null;
+  charity_id: string;
+  amount_gbp: number;
+  stripe_checkout_session_id: string | null;
+  stripe_payment_intent_id: string | null;
+  donor_email: string;
+  donor_name: string | null;
+  status: DonationStatus;
+  created_at: string;
+}
+
+export interface UserNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  body: string;
+  href: string | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+export type NotificationItem = {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  href: string | null;
+  read: boolean;
+  created_at: string;
+  source: 'stored' | 'computed';
+};
