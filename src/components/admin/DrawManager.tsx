@@ -1,7 +1,7 @@
 'use client';
 
 import * as Dialog from '@radix-ui/react-dialog';
-import { Eye, Play, Plus, Rocket, X } from 'lucide-react';
+import { Eye, Play, Plus, RefreshCw, Rocket, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -116,6 +116,61 @@ export function DrawManager() {
       setPublishPreview(data);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to load preview');
+    } finally {
+      setBusyDrawId(null);
+    }
+  }
+
+  async function handleRegenerate(draw: Draw) {
+    setBusyDrawId(draw.id);
+    try {
+      const response = await fetch(`/api/draws/${draw.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ regenerate_numbers: true }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? 'Regenerate failed');
+      toast.success(`Numbers regenerated for ${draw.month}`);
+      await loadDraws();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Regenerate failed');
+    } finally {
+      setBusyDrawId(null);
+    }
+  }
+
+  async function handleToggleDrawType(draw: Draw) {
+    const nextType = draw.draw_type === 'random' ? 'algorithmic' : 'random';
+    setBusyDrawId(draw.id);
+    try {
+      const response = await fetch(`/api/draws/${draw.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ draw_type: nextType, regenerate_numbers: true }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? 'Update failed');
+      toast.success(`Draw switched to ${nextType}`);
+      await loadDraws();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Update failed');
+    } finally {
+      setBusyDrawId(null);
+    }
+  }
+
+  async function handleDeleteDraw(draw: Draw) {
+    if (!confirm(`Delete draft draw for ${draw.month}?`)) return;
+    setBusyDrawId(draw.id);
+    try {
+      const response = await fetch(`/api/draws/${draw.id}`, { method: 'DELETE' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? 'Delete failed');
+      toast.success(`Draw ${draw.month} deleted`);
+      await loadDraws();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Delete failed');
     } finally {
       setBusyDrawId(null);
     }
@@ -237,6 +292,9 @@ export function DrawManager() {
                     busyDrawId={busyDrawId}
                     onSimulate={handleSimulate}
                     onPublish={openPublishDialog}
+                    onRegenerate={handleRegenerate}
+                    onToggleType={handleToggleDrawType}
+                    onDelete={handleDeleteDraw}
                     onView={setViewDraw}
                     className="mt-4 flex flex-wrap gap-2"
                   />
@@ -277,6 +335,9 @@ export function DrawManager() {
                           busyDrawId={busyDrawId}
                           onSimulate={handleSimulate}
                           onPublish={openPublishDialog}
+                          onRegenerate={handleRegenerate}
+                          onToggleType={handleToggleDrawType}
+                          onDelete={handleDeleteDraw}
                           onView={setViewDraw}
                           className="flex justify-end gap-2"
                         />
@@ -381,6 +442,9 @@ function DrawRowActions({
   busyDrawId,
   onSimulate,
   onPublish,
+  onRegenerate,
+  onToggleType,
+  onDelete,
   onView,
   className,
 }: {
@@ -388,6 +452,9 @@ function DrawRowActions({
   busyDrawId: string | null;
   onSimulate: (draw: Draw) => void;
   onPublish: (draw: DrawWithMeta) => void;
+  onRegenerate: (draw: Draw) => void;
+  onToggleType: (draw: Draw) => void;
+  onDelete: (draw: Draw) => void;
   onView: (draw: DrawWithMeta) => void;
   className?: string;
 }) {
@@ -406,12 +473,38 @@ function DrawRowActions({
           </button>
           <button
             type="button"
+            onClick={() => onRegenerate(draw)}
+            disabled={busyDrawId === draw.id}
+            className="btn-interactive inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium hover:bg-gray-50"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Regenerate
+          </button>
+          <button
+            type="button"
+            onClick={() => onToggleType(draw)}
+            disabled={busyDrawId === draw.id}
+            className="btn-interactive inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium hover:bg-gray-50"
+          >
+            {draw.draw_type === 'random' ? 'Algorithmic' : 'Random'}
+          </button>
+          <button
+            type="button"
             onClick={() => onPublish(draw)}
             disabled={busyDrawId === draw.id}
             className="btn-interactive inline-flex items-center gap-1 rounded-md border border-emerald-200 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
           >
             <Rocket className="h-3.5 w-3.5" />
             Publish
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(draw)}
+            disabled={busyDrawId === draw.id}
+            className="btn-interactive inline-flex items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Delete
           </button>
         </>
       )}
