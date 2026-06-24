@@ -5,6 +5,7 @@ import {
   getNextMonthKey,
 } from '@/lib/drawEngine';
 import type { DrawWithMeta } from '@/lib/draw/processing';
+import { resolveRolloverForMonth } from '@/lib/draw/processing';
 import { calculateCharityContribution } from '@/lib/charity/helpers';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -125,20 +126,26 @@ export async function getCharityWithContribution(
     charity = data as Charity | null;
   }
 
-  const monthlyContribution = calculateCharityContribution(
-    profile.subscription_plan,
-    profile.charity_percentage
-  );
+  const monthlyContribution =
+    profile.subscription_status === 'active'
+      ? calculateCharityContribution(
+          profile.subscription_plan,
+          profile.charity_percentage,
+        )
+      : 0;
 
   const monthsSubscribed = Math.max(
     1,
-    differenceInMonths(new Date(), new Date(profile.created_at)) + 1
+    differenceInMonths(new Date(), new Date(profile.created_at)) + 1,
   );
 
   return {
-    charity,
+    charity: charity?.is_active === false ? null : charity,
     monthlyContribution,
-    lifetimeContribution: Math.round(monthlyContribution * monthsSubscribed * 100) / 100,
+    lifetimeContribution:
+      profile.subscription_status === 'active'
+        ? Math.round(monthlyContribution * monthsSubscribed * 100) / 100
+        : 0,
     percentage: profile.charity_percentage,
   };
 }
@@ -248,9 +255,7 @@ export async function getNextDrawInfo(): Promise<NextDrawInfo> {
     latestPublished?.month === currentMonth ? nextMonth : currentMonth;
 
   const subscriberCount = await getActiveSubscriberCount();
-  const rolloverAmount = latestPublished
-    ? Number(latestPublished.rollover_amount)
-    : 0;
+  const rolloverAmount = await resolveRolloverForMonth(upcomingMonth);
 
   const pools = calculatePrizePools({
     subscriberCount,
@@ -268,7 +273,9 @@ export async function getNextDrawInfo(): Promise<NextDrawInfo> {
     month: upcomingMonth,
     label,
     subscriberCount,
-    estimatedPool: pools.totalPool,
+    estimatedPool:
+      Math.round((pools.jackpot + pools.pool4match + pools.pool3match) * 100) /
+      100,
     rolloverAmount,
   };
 }

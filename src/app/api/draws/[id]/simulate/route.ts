@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import {
   buildSimulation,
+  eligibleDrawSubscribers,
   fetchActiveSubscribersWithScores,
   requireAdmin,
 } from '@/lib/draw/processing';
@@ -39,7 +40,9 @@ export async function POST(_request: Request, context: RouteContext) {
       );
     }
 
-    const subscribers = await fetchActiveSubscribersWithScores();
+    const subscribers = eligibleDrawSubscribers(
+      await fetchActiveSubscribersWithScores(),
+    );
     const simulation = buildSimulation(draw as Draw, subscribers);
 
     await admin

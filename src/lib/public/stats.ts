@@ -5,8 +5,9 @@ import {
   DEFAULT_MONTHLY_FEE,
 } from '@/lib/drawEngine';
 import { createAdminClient } from '@/lib/supabase/server';
+import { resolveRolloverForMonth } from '@/lib/draw/processing';
 import { getMonthKey } from '@/lib/utils';
-import type { Draw, Profile } from '@/types';
+import type { Profile } from '@/types';
 
 export type PublicStats = {
   charity_raised_this_month: number;
@@ -50,20 +51,7 @@ export async function getPublicStats(): Promise<PublicStats> {
       );
     }
 
-    const { data: draws } = await admin
-      .from('draws')
-      .select('*')
-      .order('month', { ascending: false });
-
-    const allDraws = (draws ?? []) as Draw[];
-    const currentMonthDraw = allDraws.find((draw) => draw.month === currentMonth);
-    const latestPublished = allDraws.find((draw) => draw.status === 'published');
-
-    const rolloverAmount = currentMonthDraw
-      ? Number(currentMonthDraw.rollover_amount)
-      : latestPublished
-        ? Number(latestPublished.rollover_amount)
-        : 0;
+    const rolloverAmount = await resolveRolloverForMonth(currentMonth);
 
     const prizePools = calculatePrizePools({
       subscriberCount: activeProfiles.length,
@@ -75,7 +63,10 @@ export async function getPublicStats(): Promise<PublicStats> {
 
     return {
       charity_raised_this_month: Math.round(charityRaisedThisMonth * 100) / 100,
-      prize_pool: prizePools.totalPool,
+      prize_pool:
+        Math.round(
+          (prizePools.jackpot + prizePools.pool4match + prizePools.pool3match) * 100,
+        ) / 100,
       active_players: activeProfiles.length,
       next_draw_date: nextDraw.toISOString(),
       next_draw_label: format(nextDraw, 'd MMMM yyyy'),
