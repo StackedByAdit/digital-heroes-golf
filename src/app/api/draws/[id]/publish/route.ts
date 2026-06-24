@@ -8,6 +8,7 @@ import {
   requireAdmin,
 } from '@/lib/draw/processing';
 import { notifyDrawResultEmails } from '@/lib/email/notifications';
+import { createUserNotification } from '@/lib/notifications/service';
 import type { Draw } from '@/types';
 
 type RouteContext = {
@@ -85,6 +86,18 @@ export async function POST(_request: Request, context: RouteContext) {
     await applyJackpotRollover(draw as Draw, simulation);
 
     notifyDrawResultEmails(draw.month, subscribers, simulation.entries);
+
+    for (const entry of simulation.entries) {
+      if (entry.prize_amount > 0) {
+        await createUserNotification({
+          userId: entry.user_id,
+          type: 'winner',
+          title: `You won the ${draw.month} draw!`,
+          body: `You matched ${entry.match_type ?? 'numbers'} and won £${entry.prize_amount.toFixed(2)}. Upload proof to claim your prize.`,
+          href: '/dashboard',
+        });
+      }
+    }
 
     return NextResponse.json({
       draw: publishedDraw,

@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 
 export function cn(...classes: (string | undefined | null | false)[]) {
   return classes.filter(Boolean).join(' ');
@@ -21,6 +21,10 @@ export function formatCurrency(amount: number, currency = 'GBP') {
 
 export function formatDate(date: string) {
   return format(new Date(date), 'd MMMM yyyy');
+}
+
+export function formatRelativeTime(date: string) {
+  return formatDistanceToNow(new Date(date), { addSuffix: true });
 }
 
 export function getMonthKey(date: Date = new Date()) {

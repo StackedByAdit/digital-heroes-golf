@@ -3,14 +3,15 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Bell,
   Heart,
   History,
   Home,
   LogOut,
   Settings,
+  Shield,
   Target,
 } from 'lucide-react';
+import { NotificationBell } from '@/components/dashboard/NotificationBell';
 import { cn } from '@/lib/utils';
 import type { Profile, SubscriptionStatus } from '@/types';
 
@@ -23,7 +24,7 @@ const NAV_ITEMS = [
 ];
 
 interface DashboardShellProps {
-  profile: Pick<Profile, 'full_name' | 'email' | 'subscription_status'>;
+  profile: Pick<Profile, 'full_name' | 'email' | 'subscription_status' | 'role'>;
   children: React.ReactNode;
 }
 
@@ -93,6 +94,15 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
                 </Link>
               );
             })}
+            {profile.role === 'admin' && (
+              <Link
+                href="/admin"
+                className="btn-interactive mt-2 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800 transition hover:bg-red-100"
+              >
+                <Shield className="h-4 w-4" />
+                Admin Panel
+              </Link>
+            )}
           </nav>
         </aside>
 
@@ -109,13 +119,18 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
-              <button
-                type="button"
-                className="btn-interactive rounded-full p-2 text-gray-500 hover:bg-gray-100"
-                aria-label="Notifications"
-              >
-                <Bell className="h-5 w-5" />
-              </button>
+              {profile.role === 'admin' && (
+                <Link
+                  href="/admin"
+                  className="btn-interactive inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-sm font-semibold text-red-800 transition hover:bg-red-100 sm:px-3"
+                >
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden sm:inline">Admin Panel</span>
+                  <span className="sm:hidden">Admin</span>
+                </Link>
+              )}
+
+              <NotificationBell />
 
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-green text-xs font-semibold text-white sm:h-9 sm:w-9 sm:text-sm">
                 {initials}
@@ -136,6 +151,18 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
           <main className="flex-1 p-4 pb-20 lg:p-6 lg:pb-6">{children}</main>
         </div>
       </div>
+
+      {profile.role === 'admin' && (
+        <div className="border-b border-red-100 bg-red-50 px-4 py-2.5 lg:hidden">
+          <Link
+            href="/admin"
+            className="btn-interactive inline-flex items-center gap-2 text-sm font-semibold text-red-800"
+          >
+            <Shield className="h-4 w-4" />
+            Open Admin Panel
+          </Link>
+        </div>
+      )}
 
       <nav className="mobile-tab-bar lg:hidden" aria-label="Dashboard navigation">
         <div className="grid grid-cols-5">
