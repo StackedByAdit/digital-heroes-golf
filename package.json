@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:qa": "npx tsx scripts/qa-scenarios.ts",
+    "test:draw": "npx tsx scripts/test-draw-engine.ts",
     "test:admin": "tsx scripts/test-admin-api.ts",
     "db:setup": "tsx scripts/setup-database.ts",
     "stripe:setup": "tsx scripts/setup-stripe.ts",
