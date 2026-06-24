@@ -65,3 +65,25 @@ export const VerifyWinnerSchema = z.object({
   action: z.enum(['approve', 'reject']),
   notes: z.string().max(1000).optional(),
 });
+
+export const AdminUpdateUserSchema = z.object({
+  full_name: z.string().min(2).max(100).optional(),
+  subscription_status: z
+    .enum(['active', 'inactive', 'cancelled', 'past_due'])
+    .optional(),
+  subscription_plan: z.enum(['monthly', 'yearly']).nullable().optional(),
+  charity_id: z.string().uuid().nullable().optional(),
+  charity_percentage: z.number().int().min(10).max(100).optional(),
+});
+
+export const AdminScoreSchema = ScoreSchema.extend({
+  user_id: z.string().uuid().optional(),
+});
+
+export const AdminScoreUpdateSchema = ScoreUpdateSchema.extend({
+  user_id: z.string().uuid().optional(),
+});
+
+export const AdminScoreDeleteSchema = ScoreDeleteSchema.extend({
+  user_id: z.string().uuid().optional(),
+});
