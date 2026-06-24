@@ -1,8 +1,16 @@
 import { createServerClient } from '@supabase/ssr';
+import type { User } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
+export type SessionUpdateResult = {
+  response: NextResponse;
+  user: User | null;
+};
+
+export async function updateSession(
+  request: NextRequest
+): Promise<SessionUpdateResult> {
+  let response = NextResponse.next({
     request,
   });
 
@@ -18,18 +26,30 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
-          supabaseResponse = NextResponse.next({
+          response = NextResponse.next({
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            response.cookies.set(name, value, options)
           );
         },
       },
     }
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  return supabaseResponse;
+  return { response, user };
+}
+
+export function mergeSessionCookies(
+  source: NextResponse,
+  target: NextResponse
+): NextResponse {
+  source.cookies.getAll().forEach(({ name, value }) => {
+    target.cookies.set(name, value);
+  });
+  return target;
 }
