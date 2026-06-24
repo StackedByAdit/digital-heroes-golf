@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
+import { SubscriptionWelcomeToast } from '@/components/dashboard/SubscriptionWelcomeToast';
 
 export default async function DashboardLayout({
   children,
@@ -28,6 +30,9 @@ export default async function DashboardLayout({
 
   return (
     <DashboardShell profile={profile}>
+      <Suspense fallback={null}>
+        <SubscriptionWelcomeToast />
+      </Suspense>
       {children}
     </DashboardShell>
   );
