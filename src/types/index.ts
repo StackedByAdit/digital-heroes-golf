@@ -53,7 +53,7 @@ export type SubscriptionStatus = 'active' | 'inactive' | 'cancelled' | 'past_due
 export type SubscriptionPlan = 'monthly' | 'yearly';
 export type PaymentStatus = 'pending' | 'paid' | 'rejected';
 export type DrawStatus = 'draft' | 'simulated' | 'published';
-export type DrawType = 'random' | 'algorithmic';
+export type DrawType = 'random' | 'algorithmic' | 'algorithmic_least';
 export type MatchType = '5-match' | '4-match' | '3-match';
 
 export type CharityCategory =
@@ -77,6 +77,7 @@ export interface Profile {
   subscription_plan: SubscriptionPlan | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
+  subscription_ends_at: string | null;
   charity_id: string | null;
   charity_percentage: number; // 10–100
   team_id: string | null; // future: corporate/team membership

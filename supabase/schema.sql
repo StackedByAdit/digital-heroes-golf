@@ -39,6 +39,7 @@ CREATE TABLE public.profiles (
     CHECK (subscription_plan IS NULL OR subscription_plan IN ('monthly', 'yearly')),
   stripe_customer_id text UNIQUE,
   stripe_subscription_id text UNIQUE,
+  subscription_ends_at timestamptz,
   charity_id uuid REFERENCES public.charities (id) ON DELETE SET NULL,
   charity_percentage int NOT NULL DEFAULT 10
     CHECK (charity_percentage >= 10 AND charity_percentage <= 100),
@@ -95,7 +96,7 @@ CREATE TABLE public.draws (
   month text NOT NULL UNIQUE
     CHECK (month ~ '^\d{4}-(0[1-9]|1[0-2])$'),
   draw_type text NOT NULL DEFAULT 'random'
-    CHECK (draw_type IN ('random', 'algorithmic')),
+    CHECK (draw_type IN ('random', 'algorithmic', 'algorithmic_least')),
   drawn_numbers int[] NOT NULL
     CHECK (array_length(drawn_numbers, 1) = 5),
   status text NOT NULL DEFAULT 'draft'
@@ -273,8 +274,6 @@ DECLARE
   v_scores int[];
   v_match_count int;
   v_match_type text;
-  v_month_start date;
-  v_month_end date;
   v_jackpot_winners int := 0;
   v_pool4_winners int := 0;
   v_pool3_winners int := 0;
@@ -291,26 +290,27 @@ BEGIN
     RAISE EXCEPTION 'Draw must be published before processing (current status: %)', v_draw.status;
   END IF;
 
-  v_month_start := (v_draw.month || '-01')::date;
-  v_month_end := (v_month_start + interval '1 month' - interval '1 day')::date;
-
   DELETE FROM public.draw_entries
   WHERE draw_id = p_draw_id;
 
   FOR v_profile IN
     SELECT *
     FROM public.profiles
-    WHERE subscription_status = 'active'
+    WHERE subscription_status IN ('active', 'past_due', 'cancelled')
   LOOP
+    IF v_profile.subscription_status = 'cancelled'
+      AND v_profile.subscription_ends_at IS NOT NULL
+      AND v_profile.subscription_ends_at <= now() THEN
+      CONTINUE;
+    END IF;
+
     SELECT ARRAY_AGG(score ORDER BY score ASC)
     INTO v_scores
     FROM (
       SELECT gs.score
       FROM public.golf_scores gs
       WHERE gs.user_id = v_profile.id
-        AND gs.score_date >= v_month_start
-        AND gs.score_date <= v_month_end
-      ORDER BY gs.score ASC
+      ORDER BY gs.score_date DESC
       LIMIT 5
     ) top_scores;
 
