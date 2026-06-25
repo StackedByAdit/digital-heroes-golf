@@ -57,7 +57,8 @@ export default function HowItWorksPage() {
             <p>
               Every month, five numbers are drawn from the pool of all active
               subscriber scores. Numbers can be drawn randomly or algorithmically
-              (weighted by how often scores appear in the community).
+              (weighted by how often scores appear in the community, or inversely
+              weighted to favour less common scores).
             </p>
             <ul className="mt-4 list-disc space-y-2 pl-5">
               <li>
