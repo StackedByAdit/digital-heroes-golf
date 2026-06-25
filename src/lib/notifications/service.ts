@@ -76,7 +76,7 @@ export async function getNotificationsForUser(userId: string): Promise<Notificat
       id: 'computed:past_due',
       type: 'billing',
       title: 'Payment failed',
-      body: 'Update your billing details to restore full dashboard access.',
+      body: 'Update your billing details to keep your subscription active.',
       href: '/dashboard/account',
       read: false,
       created_at: new Date().toISOString(),

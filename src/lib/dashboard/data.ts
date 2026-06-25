@@ -1,13 +1,15 @@
 import { differenceInMonths } from 'date-fns';
 import {
   calculatePrizePools,
-  DEFAULT_MONTHLY_FEE,
   getNextMonthKey,
+  totalMonthlyPoolContribution,
 } from '@/lib/drawEngine';
 import type { DrawWithMeta } from '@/lib/draw/processing';
 import { resolveRolloverForMonth } from '@/lib/draw/processing';
 import { calculateCharityContribution } from '@/lib/charity/helpers';
 import { createClient } from '@/lib/supabase/server';
+import { hasPlatformAccess } from '@/lib/subscription/access';
+import { countPlatformAccessSubscribers, fetchPlatformAccessProfiles } from '@/lib/subscription/subscribers';
 import {
   getWinnerDisplayStatus,
   isWinningEntry,
@@ -126,13 +128,15 @@ export async function getCharityWithContribution(
     charity = data as Charity | null;
   }
 
-  const monthlyContribution =
-    profile.subscription_status === 'active'
-      ? calculateCharityContribution(
-          profile.subscription_plan,
-          profile.charity_percentage,
-        )
-      : 0;
+  const monthlyContribution = hasPlatformAccess(
+    profile.subscription_status,
+    profile.subscription_ends_at
+  )
+    ? calculateCharityContribution(
+        profile.subscription_plan,
+        profile.charity_percentage,
+      )
+    : 0;
 
   const monthsSubscribed = Math.max(
     1,
@@ -142,10 +146,12 @@ export async function getCharityWithContribution(
   return {
     charity: charity?.is_active === false ? null : charity,
     monthlyContribution,
-    lifetimeContribution:
-      profile.subscription_status === 'active'
-        ? Math.round(monthlyContribution * monthsSubscribed * 100) / 100
-        : 0,
+    lifetimeContribution: hasPlatformAccess(
+      profile.subscription_status,
+      profile.subscription_ends_at
+    )
+      ? Math.round(monthlyContribution * monthsSubscribed * 100) / 100
+      : 0,
     percentage: profile.charity_percentage,
   };
 }
@@ -228,14 +234,7 @@ export async function getWinningsSummary(userId: string): Promise<WinningsSummar
 }
 
 export async function getActiveSubscriberCount(): Promise<number> {
-  const supabase = await createClient();
-  const { count, error } = await supabase
-    .from('profiles')
-    .select('id', { count: 'exact', head: true })
-    .eq('subscription_status', 'active');
-
-  if (error) return 0;
-  return count ?? 0;
+  return countPlatformAccessSubscribers();
 }
 
 export async function getNextDrawInfo(): Promise<NextDrawInfo> {
@@ -256,10 +255,12 @@ export async function getNextDrawInfo(): Promise<NextDrawInfo> {
 
   const subscriberCount = await getActiveSubscriberCount();
   const rolloverAmount = await resolveRolloverForMonth(upcomingMonth);
+  const profiles = await fetchPlatformAccessProfiles();
 
   const pools = calculatePrizePools({
-    subscriberCount,
-    monthlyFeePerUser: DEFAULT_MONTHLY_FEE,
+    totalMonthlyPool: totalMonthlyPoolContribution(
+      profiles.map((profile) => profile.subscription_plan)
+    ),
     rolloverAmount,
   });
 

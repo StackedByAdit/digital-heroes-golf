@@ -6,6 +6,10 @@ import { Minus, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { cn, formatDate } from '@/lib/utils';
+import {
+  REQUIRED_SCORE_COUNT,
+  scoresProgressLabel,
+} from '@/lib/subscription/access';
 import type { GolfScore } from '@/types';
 
 interface ScoreEntryProps {
@@ -37,7 +41,8 @@ export function ScoreEntry({ initialScores }: ScoreEntryProps) {
   const [deleting, setDeleting] = useState(false);
 
   const oldestScore = useMemo(() => getOldestScore(scores), [scores]);
-  const atCapacity = scores.length >= 5;
+  const atCapacity = scores.length >= REQUIRED_SCORE_COUNT;
+  const scoresComplete = scores.length >= REQUIRED_SCORE_COUNT;
 
   function resetForm() {
     setFormMode(null);
@@ -97,7 +102,7 @@ export function ScoreEntry({ initialScores }: ScoreEntryProps) {
           (a, b) =>
             new Date(b.score_date).getTime() - new Date(a.score_date).getTime()
         )
-        .slice(0, 5);
+        .slice(0, REQUIRED_SCORE_COUNT);
 
       setScores(optimisticScores);
     } else if (formMode === 'edit' && editingId) {
@@ -188,8 +193,28 @@ export function ScoreEntry({ initialScores }: ScoreEntryProps) {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">My Golf Scores</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Enter your Stableford scores (1–45)
+            Enter your Stableford scores (1–45). You need{' '}
+            {REQUIRED_SCORE_COUNT} scores to enter the monthly draw.
           </p>
+          <div className="mt-3 max-w-xs">
+            <div className="flex items-center justify-between text-xs font-medium text-gray-600">
+              <span>Draw entry progress</span>
+              <span className={scoresComplete ? 'text-emerald-700' : 'text-amber-700'}>
+                {scoresProgressLabel(scores.length)}
+              </span>
+            </div>
+            <div className="mt-1 h-2 overflow-hidden rounded-full bg-gray-200">
+              <div
+                className={cn(
+                  'h-full rounded-full transition-all',
+                  scoresComplete ? 'bg-emerald-500' : 'bg-amber-500'
+                )}
+                style={{
+                  width: `${Math.min(100, (scores.length / REQUIRED_SCORE_COUNT) * 100)}%`,
+                }}
+              />
+            </div>
+          </div>
         </div>
         {!formMode && (
           <button
@@ -202,6 +227,14 @@ export function ScoreEntry({ initialScores }: ScoreEntryProps) {
           </button>
         )}
       </div>
+
+      {!scoresComplete && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Add {REQUIRED_SCORE_COUNT - scores.length} more score
+          {REQUIRED_SCORE_COUNT - scores.length === 1 ? '' : 's'} to qualify for
+          the next monthly draw.
+        </div>
+      )}
 
       {atCapacity && oldestScore && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
