@@ -69,27 +69,26 @@ export function HomePageContent({
           alt=""
           fill
           priority
-          className="object-cover object-center"
+          className="object-cover object-center brightness-[0.75]"
           sizes="100vw"
         />
         <div className="hero-meadow-overlay absolute inset-0" aria-hidden />
 
-        <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center px-4 pb-28 pt-28 text-center sm:px-6 sm:pt-32">
+        <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center px-4 pb-32 pt-24 text-center sm:pb-28 sm:pt-28 md:pt-32">
           <ScrollReveal className="flex flex-col items-center">
             <p className="glass-pill mb-6 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/95">
               <AnimatedCounter value={stats.charity_raised_this_month} prefix="£" />
               <span>raised for charity this month</span>
             </p>
 
-            <h1 className="font-script text-5xl font-semibold leading-[1.1] tracking-tight text-white sm:text-6xl md:text-7xl lg:text-[5.25rem]">
-              Play golf. Win prizes.
+            <h1 className="font-display text-[2.85rem] font-normal leading-[1.08] tracking-tight text-white sm:text-6xl md:text-[4.5rem] lg:text-[5rem]">
+              Good golf.
               <br />
-              Change lives — effortlessly.
+              <span className="italic text-[#aebfaa]">Greater impact.</span>
             </h1>
 
-            <p className="mt-6 max-w-xl text-base leading-relaxed text-white/90 sm:text-lg">
-              Log your scores, enter monthly draws, support charities you believe in,
-              and donate anytime — all in one place.
+            <p className="mt-8 max-w-2xl text-base font-normal leading-relaxed text-white/90 sm:text-lg">
+              Compete every month. Support charities. Win together.
             </p>
 
             <LandingAuthActions initialAuthenticated={initialAuthenticated} variant="hero" />
@@ -98,9 +97,9 @@ export function HomePageContent({
 
         <Link
           href="/charities"
-          className="glass-panel btn-interactive absolute bottom-8 left-4 z-10 hidden items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium text-white sm:flex sm:left-8"
+          className="glass-panel btn-interactive absolute bottom-8 left-4 z-10 flex max-w-[11rem] items-center gap-2 rounded-2xl px-3 py-2.5 text-xs font-medium text-white sm:bottom-8 sm:left-8 sm:max-w-none sm:px-4 sm:py-3 sm:text-sm"
         >
-          <ArrowUpRight className="h-4 w-4" />
+          <ArrowUpRight className="h-4 w-4 shrink-0" />
           Explore charities
         </Link>
 
@@ -186,7 +185,7 @@ export function HomePageContent({
                 </Link>
                 <Link
                   href={`/donate?charity=${featuredCharity.id}`}
-                  className="btn-interactive rounded-full border border-white/30 px-6 py-3 text-sm font-semibold text-white hover:bg-white/10"
+                  className="btn-interactive inline-flex items-center justify-center rounded-full border border-white/30 px-6 py-3 text-sm font-semibold leading-none text-white hover:bg-white/10"
                 >
                   Donate now
                 </Link>
