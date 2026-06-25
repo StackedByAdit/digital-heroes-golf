@@ -10,9 +10,9 @@ export function useAuthSession(initialAuthenticated = false) {
     const supabase = createClient();
     let mounted = true;
 
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
-      setIsAuthenticated(Boolean(data.user));
+      setIsAuthenticated(Boolean(session?.user));
     });
 
     const {

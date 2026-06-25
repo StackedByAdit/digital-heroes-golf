@@ -53,15 +53,54 @@ function finalizeResponse(
   return response;
 }
 
+function needsStrictAuth(pathname: string): boolean {
+  if (pathname === '/login') return true;
+  if (pathname.startsWith('/admin')) return true;
+  if (matchesPath(pathname, DASHBOARD_PATHS)) return true;
+  if (pathname.startsWith('/api') && isProtectedApi(pathname)) return true;
+  return false;
+}
+
+function needsProfile(pathname: string): boolean {
+  if (pathname.startsWith('/admin')) return true;
+  if (matchesPath(pathname, DASHBOARD_PATHS)) return true;
+  if (pathname.startsWith('/api') && isProtectedApi(pathname)) return true;
+  return false;
+}
+
 export async function middleware(request: NextRequest) {
-  const { response: sessionResponse, user } = await updateSession(request);
+  const { response: sessionResponse, user: sessionUser } = await updateSession(request);
   const { pathname } = request.nextUrl;
+
+  let user = sessionUser;
+
+  if (needsStrictAuth(pathname)) {
+    if (sessionUser) {
+      const supabase = createServerClient(
+        getSupabaseUrl(),
+        getSupabaseAnonKey(),
+        {
+          cookies: {
+            getAll() {
+              return request.cookies.getAll();
+            },
+            setAll() {},
+          },
+        }
+      );
+
+      const {
+        data: { user: verifiedUser },
+      } = await supabase.auth.getUser();
+      user = verifiedUser;
+    }
+  }
 
   const requestHeaders = new Headers(request.headers);
   let role: string | null = null;
   let subscriptionStatus: string | null = null;
 
-  if (user) {
+  if (user && needsProfile(pathname)) {
     const supabase = createServerClient(
       getSupabaseUrl(),
       getSupabaseAnonKey(),
