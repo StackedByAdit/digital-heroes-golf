@@ -51,12 +51,14 @@ CREATE INDEX IF NOT EXISTS idx_donations_status ON public.donations (status);
 
 ALTER TABLE public.donations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "donations_select_own" ON public.donations;
 CREATE POLICY "donations_select_own"
   ON public.donations
   FOR SELECT
   TO authenticated
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "donations_select_admin" ON public.donations;
 CREATE POLICY "donations_select_admin"
   ON public.donations
   FOR SELECT
@@ -83,12 +85,14 @@ CREATE INDEX IF NOT EXISTS idx_user_notifications_unread ON public.user_notifica
 
 ALTER TABLE public.user_notifications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "notifications_select_own" ON public.user_notifications;
 CREATE POLICY "notifications_select_own"
   ON public.user_notifications
   FOR SELECT
   TO authenticated
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "notifications_update_own" ON public.user_notifications;
 CREATE POLICY "notifications_update_own"
   ON public.user_notifications
   FOR UPDATE
@@ -112,12 +116,14 @@ ON CONFLICT (id) DO UPDATE SET
   file_size_limit = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
+DROP POLICY IF EXISTS "charity_images_public_read" ON storage.objects;
 CREATE POLICY "charity_images_public_read"
   ON storage.objects
   FOR SELECT
   TO anon, authenticated
   USING (bucket_id = 'charity-images');
 
+DROP POLICY IF EXISTS "charity_images_admin_insert" ON storage.objects;
 CREATE POLICY "charity_images_admin_insert"
   ON storage.objects
   FOR INSERT
@@ -127,6 +133,7 @@ CREATE POLICY "charity_images_admin_insert"
     AND public.is_admin()
   );
 
+DROP POLICY IF EXISTS "charity_images_admin_update" ON storage.objects;
 CREATE POLICY "charity_images_admin_update"
   ON storage.objects
   FOR UPDATE
@@ -134,6 +141,7 @@ CREATE POLICY "charity_images_admin_update"
   USING (bucket_id = 'charity-images' AND public.is_admin())
   WITH CHECK (bucket_id = 'charity-images' AND public.is_admin());
 
+DROP POLICY IF EXISTS "charity_images_admin_delete" ON storage.objects;
 CREATE POLICY "charity_images_admin_delete"
   ON storage.objects
   FOR DELETE
