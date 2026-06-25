@@ -195,7 +195,7 @@ The webhook handler also safely handles `invoice.payment_succeeded` for renewal 
    - Framework: Next.js
    - Build command: `npm run build`
    - Output directory: `.next`
-   - Region: London (`lhr1`) via `vercel.json`
+   - Region: London (`lhr1`) — set in `vercel.json` or **Project Settings → Functions → Function Region**
 5. Set all environment variables in Vercel Dashboard > Project > Settings > Environment Variables:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
