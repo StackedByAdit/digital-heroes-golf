@@ -3,10 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 
 loadEnvLocal();
 
-const TEST_PASSWORD = 'ChangeMe123!';
-
 type TestUser = {
   email: string;
+  password: string;
   full_name: string;
   role: 'admin' | 'subscriber';
   subscription_status: 'active' | 'inactive';
@@ -17,8 +16,9 @@ type TestUser = {
 
 const TEST_USERS: TestUser[] = [
   {
-    email: 'admin@digitalheroes.golf',
-    full_name: 'Admin User',
+    email: 'admin@digitalheroes.co.in',
+    password: 'Admin2025!',
+    full_name: 'Recruiter Admin',
     role: 'admin',
     subscription_status: 'active',
     subscription_plan: 'yearly',
@@ -26,8 +26,9 @@ const TEST_USERS: TestUser[] = [
     charity_percentage: 25,
   },
   {
-    email: 'subscriber@digitalheroes.golf',
-    full_name: 'Test Subscriber',
+    email: 'testuser@digitalheroes.co.in',
+    password: 'TestUser2025!',
+    full_name: 'Recruiter Test User',
     role: 'subscriber',
     subscription_status: 'active',
     subscription_plan: 'monthly',
@@ -60,7 +61,7 @@ async function main() {
     if (!userId) {
       const { data, error } = await admin.auth.admin.createUser({
         email: user.email,
-        password: TEST_PASSWORD,
+        password: user.password,
         email_confirm: true,
         user_metadata: { full_name: user.full_name },
       });
@@ -73,7 +74,7 @@ async function main() {
       console.log(`Created auth user: ${user.email}`);
     } else {
       await admin.auth.admin.updateUserById(userId, {
-        password: TEST_PASSWORD,
+        password: user.password,
         email_confirm: true,
         user_metadata: { full_name: user.full_name },
       });
@@ -101,7 +102,10 @@ async function main() {
     );
   }
 
-  console.log('\nTest credentials (password for both):', TEST_PASSWORD);
+  console.log('\nRecruiter test credentials:');
+  for (const user of TEST_USERS) {
+    console.log(`${user.email} / ${user.password}`);
+  }
 }
 
 main().catch((error) => {
