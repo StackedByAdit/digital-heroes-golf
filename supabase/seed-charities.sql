@@ -7,7 +7,7 @@ INSERT INTO public.charities (
     'Heroes for Children',
     'Supporting families facing pediatric cancer with financial and emotional assistance.',
     'health',
-    'https://placehold.co/400x300?text=Heroes+for+Children',
+    '/images/charities/heroes-for-children.jpg',
     'https://example.com/heroes-for-children',
     true,
     true
@@ -17,7 +17,7 @@ INSERT INTO public.charities (
     'Fairway Futures',
     'Introducing golf to underserved youth through coaching and equipment grants.',
     'youth',
-    'https://placehold.co/400x300?text=Fairway+Futures',
+    '/images/charities/fairway-futures.jpg',
     'https://example.com/fairway-futures',
     true,
     true
@@ -27,7 +27,7 @@ INSERT INTO public.charities (
     'Green Links Trust',
     'Preserving public golf courses and open green spaces for community access.',
     'environment',
-    'https://placehold.co/400x300?text=Green+Links',
+    '/images/charities/green-links-trust.jpg',
     'https://example.com/green-links',
     false,
     true
@@ -37,7 +37,7 @@ INSERT INTO public.charities (
     'Tee Off for Troops',
     'Golf therapy and rehabilitation programmes for veterans and service members.',
     'veterans',
-    'https://placehold.co/400x300?text=Tee+Off+for+Troops',
+    '/images/charities/tee-off-for-troops.jpg',
     'https://example.com/tee-off-troops',
     true,
     true
