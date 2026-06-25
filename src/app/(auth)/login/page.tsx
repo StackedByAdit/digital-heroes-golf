@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
+import { AuthLoadingFallback } from '@/components/auth/AuthLoadingFallback';
 import LoginForm from './LoginForm';
 
 export default async function LoginPage() {
@@ -14,7 +15,7 @@ export default async function LoginPage() {
   }
 
   return (
-    <Suspense fallback={<div className="text-sm text-brand-charcoal/60">Loading…</div>}>
+    <Suspense fallback={<AuthLoadingFallback />}>
       <LoginForm />
     </Suspense>
   );

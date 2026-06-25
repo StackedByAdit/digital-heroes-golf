@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { AuthCard } from '@/components/auth/AuthCard';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { authButtonClass, authInputClass } from '@/components/auth/authStyles';
 import { createClient } from '@/lib/supabase/client';
 import { mapSupabaseAuthError } from '@/lib/auth/errors';
 
@@ -57,7 +60,6 @@ export default function LoginForm() {
       }
 
       router.push(redirectTo);
-      router.refresh();
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
@@ -87,9 +89,12 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-md rounded-2xl border border-brand-green/10 bg-white p-8 shadow-sm">
-      <h1 className="font-display text-3xl font-bold text-brand-green">Welcome back</h1>
-      <p className="mt-2 text-sm text-brand-charcoal/60">
+    <AuthShell>
+      <AuthCard>
+      <h1 className="text-center font-display text-3xl font-bold text-brand-green sm:text-[2rem]">
+        Welcome back
+      </h1>
+      <p className="mt-2 text-center text-sm text-brand-charcoal/60">
         Sign in to manage your scores, draws, and charity giving.
       </p>
 
@@ -105,12 +110,12 @@ export default function LoginForm() {
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="mt-1.5 w-full rounded-lg border border-brand-green/15 px-3 py-2.5 text-sm outline-none ring-brand-gold focus:border-brand-gold focus:ring-2"
+            className={authInputClass}
           />
         </div>
 
         <div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <label htmlFor="password" className="block text-sm font-medium text-brand-charcoal">
               Password
             </label>
@@ -129,7 +134,7 @@ export default function LoginForm() {
             required
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="mt-1.5 w-full rounded-lg border border-brand-green/15 px-3 py-2.5 text-sm outline-none ring-brand-gold focus:border-brand-gold focus:ring-2"
+            className={authInputClass}
           />
         </div>
 
@@ -145,11 +150,7 @@ export default function LoginForm() {
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-full bg-brand-green py-3 text-sm font-semibold text-white transition hover:bg-brand-green/90 disabled:opacity-50"
-        >
+        <button type="submit" disabled={loading} className={authButtonClass}>
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
@@ -160,6 +161,7 @@ export default function LoginForm() {
           Sign up
         </Link>
       </p>
-    </div>
+      </AuthCard>
+    </AuthShell>
   );
 }
