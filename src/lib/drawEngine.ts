@@ -1,4 +1,8 @@
-import type { MatchType } from '@/types';
+import type { DrawType, MatchType, SubscriptionPlan } from '@/types';
+import {
+  SUBSCRIPTION_MONTHLY_GBP,
+  SUBSCRIPTION_YEARLY_GBP,
+} from '@/lib/charity/helpers';
 
 const MIN_SCORE = 1;
 const MAX_SCORE = 45;
@@ -21,32 +25,30 @@ export function generateRandomDraw(): number[] {
   return drawn.sort((a, b) => a - b);
 }
 
-/**
- * Algorithmic draw mode: scores appearing more often in the subscriber pool
- * are more likely to be drawn. We build a frequency map, assign every value
- * 1–45 at least weight 1 (so sparse pools still produce five numbers), then
- * perform weighted sampling without replacement.
- */
-export function generateAlgorithmicDraw(allUserScores: number[]): number[] {
-  if (allUserScores.length === 0) {
-    return generateRandomDraw();
+export function effectiveMonthlySubscriptionFee(
+  plan: SubscriptionPlan | null
+): number {
+  if (plan === 'yearly') {
+    return SUBSCRIPTION_YEARLY_GBP / 12;
   }
+  return SUBSCRIPTION_MONTHLY_GBP;
+}
 
-  const weights = new Map<number, number>();
+export function totalMonthlyPoolContribution(
+  plans: Array<SubscriptionPlan | null>
+): number {
+  return roundCurrency(
+    plans.reduce((sum, plan) => sum + effectiveMonthlySubscriptionFee(plan), 0)
+  );
+}
 
-  for (let value = MIN_SCORE; value <= MAX_SCORE; value++) {
-    weights.set(value, 1);
-  }
-
-  for (const score of allUserScores) {
-    if (score >= MIN_SCORE && score <= MAX_SCORE) {
-      weights.set(score, (weights.get(score) ?? 0) + 1);
-    }
-  }
-
+function weightedDrawFromPool(
+  weights: Map<number, number>,
+  drawSize: number = DRAW_SIZE
+): number[] {
   const drawn = new Set<number>();
 
-  while (drawn.size < DRAW_SIZE) {
+  while (drawn.size < drawSize) {
     const candidates = [...weights.entries()].filter(([value]) => !drawn.has(value));
     const totalWeight = candidates.reduce((sum, [, weight]) => sum + weight, 0);
     let threshold = Math.random() * totalWeight;
@@ -72,6 +74,65 @@ export function generateAlgorithmicDraw(allUserScores: number[]): number[] {
   return [...drawn].sort((a, b) => a - b);
 }
 
+function baseScoreWeights(allUserScores: number[]): Map<number, number> {
+  const frequencies = new Map<number, number>();
+
+  for (let value = MIN_SCORE; value <= MAX_SCORE; value++) {
+    frequencies.set(value, 0);
+  }
+
+  for (const score of allUserScores) {
+    if (score >= MIN_SCORE && score <= MAX_SCORE) {
+      frequencies.set(score, (frequencies.get(score) ?? 0) + 1);
+    }
+  }
+
+  return frequencies;
+}
+
+/**
+ * Algorithmic draw mode: scores appearing more often in the subscriber pool
+ * are more likely to be drawn.
+ */
+export function generateAlgorithmicDraw(allUserScores: number[]): number[] {
+  if (allUserScores.length === 0) {
+    return generateRandomDraw();
+  }
+
+  const frequencies = baseScoreWeights(allUserScores);
+  const weights = new Map<number, number>();
+
+  for (let value = MIN_SCORE; value <= MAX_SCORE; value++) {
+    weights.set(value, (frequencies.get(value) ?? 0) + 1);
+  }
+
+  return weightedDrawFromPool(weights);
+}
+
+/**
+ * Algorithmic (least frequent): rare scores in the pool are more likely to be drawn.
+ */
+export function generateAlgorithmicLeastDraw(allUserScores: number[]): number[] {
+  if (allUserScores.length === 0) {
+    return generateRandomDraw();
+  }
+
+  const frequencies = baseScoreWeights(allUserScores);
+  const maxFrequency = Math.max(...frequencies.values(), 1);
+  const weights = new Map<number, number>();
+
+  for (let value = MIN_SCORE; value <= MAX_SCORE; value++) {
+    const frequency = frequencies.get(value) ?? 0;
+    // In-pool scores: rare scores weigh more. Scores never submitted stay at baseline 1.
+    weights.set(
+      value,
+      frequency > 0 ? maxFrequency - frequency + 1 : 1
+    );
+  }
+
+  return weightedDrawFromPool(weights);
+}
+
 /**
  * Count how many of the user's score values appear in the drawn set.
  * Each stored score is evaluated independently (matches DB run_draw logic).
@@ -93,8 +154,9 @@ export function getMatchType(matchCount: number): MatchType | null {
  * Rollover from a prior month with no 5-match winner is added to the jackpot only.
  */
 export function calculatePrizePools(params: {
-  subscriberCount: number;
-  monthlyFeePerUser: number;
+  subscriberCount?: number;
+  monthlyFeePerUser?: number;
+  totalMonthlyPool?: number;
   rolloverAmount: number;
 }): {
   jackpot: number;
@@ -102,11 +164,13 @@ export function calculatePrizePools(params: {
   pool3match: number;
   totalPool: number;
 } {
-  const totalPool = params.subscriberCount * params.monthlyFeePerUser;
+  const totalPool =
+    params.totalMonthlyPool ??
+    (params.subscriberCount ?? 0) * (params.monthlyFeePerUser ?? DEFAULT_MONTHLY_FEE);
   const monthlyJackpot = totalPool * 0.4;
 
   return {
-    totalPool,
+    totalPool: roundCurrency(totalPool),
     jackpot: roundCurrency(monthlyJackpot + params.rolloverAmount),
     pool4match: roundCurrency(totalPool * 0.35),
     pool3match: roundCurrency(totalPool * 0.25),
@@ -150,4 +214,40 @@ export function getNextMonthKey(month: string): string | null {
   const nextYear = date.getUTCFullYear();
   const nextMonth = String(date.getUTCMonth() + 1).padStart(2, '0');
   return `${nextYear}-${nextMonth}`;
+}
+
+const DRAW_TYPE_ORDER: DrawType[] = [
+  'random',
+  'algorithmic',
+  'algorithmic_least',
+];
+
+export function drawTypeLabel(drawType: DrawType): string {
+  switch (drawType) {
+    case 'algorithmic':
+      return 'Algorithmic (most frequent)';
+    case 'algorithmic_least':
+      return 'Algorithmic (least frequent)';
+    default:
+      return 'Random';
+  }
+}
+
+export function nextDrawType(drawType: DrawType): DrawType {
+  const index = DRAW_TYPE_ORDER.indexOf(drawType);
+  return DRAW_TYPE_ORDER[(index + 1) % DRAW_TYPE_ORDER.length];
+}
+
+export function generateDrawNumbersForType(
+  drawType: DrawType,
+  scorePool: number[]
+): number[] {
+  switch (drawType) {
+    case 'algorithmic':
+      return generateAlgorithmicDraw(scorePool);
+    case 'algorithmic_least':
+      return generateAlgorithmicLeastDraw(scorePool);
+    default:
+      return generateRandomDraw();
+  }
 }

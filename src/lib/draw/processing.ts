@@ -1,19 +1,21 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { createClient } from '@/lib/supabase/server';
 import {
+  calculatePrizePools,
   countMatches,
   DEFAULT_MONTHLY_FEE,
-  generateAlgorithmicDraw,
-  generateRandomDraw,
+  generateDrawNumbersForType,
   getMatchType,
   getNextMonthKey,
   getPreviousMonthKey,
   splitPrize,
+  totalMonthlyPoolContribution,
 } from '@/lib/drawEngine';
-import type { Draw, DrawEntry, MatchType, Profile } from '@/types';
+import { hasPlatformAccess } from '@/lib/subscription/access';
+import type { Draw, DrawEntry, MatchType, Profile, SubscriptionPlan } from '@/types';
 
 export type SubscriberWithScores = {
-  profile: Pick<Profile, 'id' | 'email' | 'full_name'>;
+  profile: Pick<Profile, 'id' | 'email' | 'full_name' | 'subscription_plan'>;
   scores: number[];
 };
 
@@ -80,8 +82,10 @@ export async function fetchActiveSubscribersWithScores(): Promise<
 
   const { data: profiles, error: profilesError } = await admin
     .from('profiles')
-    .select('id, email, full_name')
-    .eq('subscription_status', 'active');
+    .select(
+      'id, email, full_name, subscription_status, subscription_ends_at, subscription_plan'
+    )
+    .in('subscription_status', ['active', 'past_due', 'cancelled']);
 
   if (profilesError) {
     throw new Error(profilesError.message);
@@ -90,6 +94,15 @@ export async function fetchActiveSubscribersWithScores(): Promise<
   const subscribers: SubscriberWithScores[] = [];
 
   for (const profile of profiles ?? []) {
+    if (
+      !hasPlatformAccess(
+        profile.subscription_status,
+        profile.subscription_ends_at
+      )
+    ) {
+      continue;
+    }
+
     const { data: scores, error: scoresError } = await admin
       .from('golf_scores')
       .select('score')
@@ -102,12 +115,64 @@ export async function fetchActiveSubscribersWithScores(): Promise<
     }
 
     subscribers.push({
-      profile,
+      profile: {
+        id: profile.id,
+        email: profile.email,
+        full_name: profile.full_name,
+        subscription_plan: profile.subscription_plan as SubscriptionPlan | null,
+      },
       scores: (scores ?? []).map((row) => row.score),
     });
   }
 
   return subscribers;
+}
+
+export function prizePoolsForSubscribers(
+  subscribers: SubscriberWithScores[],
+  rolloverAmount: number
+) {
+  return calculatePrizePools({
+    totalMonthlyPool: totalMonthlyPoolContribution(
+      subscribers.map((subscriber) => subscriber.profile.subscription_plan)
+    ),
+    rolloverAmount,
+  });
+}
+
+export async function refreshDrawPrizePools(drawMonth: string) {
+  const subscribers = await fetchActiveSubscribersWithScores();
+  const rolloverAmount = await resolveRolloverForMonth(drawMonth);
+  const pools = prizePoolsForSubscribers(subscribers, rolloverAmount);
+
+  return {
+    subscribers,
+    rolloverAmount,
+    pools,
+  };
+}
+
+export async function applyPrizePoolsToDraw(drawId: string, drawMonth: string) {
+  const { pools, rolloverAmount } = await refreshDrawPrizePools(drawMonth);
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from('draws')
+    .update({
+      jackpot_amount: pools.jackpot,
+      pool_4match: pools.pool4match,
+      pool_3match: pools.pool3match,
+      rollover_amount: rolloverAmount,
+    })
+    .eq('id', drawId)
+    .select('*')
+    .single();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? 'Failed to refresh draw prize pools');
+  }
+
+  return data as Draw;
 }
 
 export async function resolveRolloverForMonth(month: string): Promise<number> {
@@ -233,9 +298,7 @@ export function generateDrawNumbers(
   drawType: Draw['draw_type'],
   scorePool: number[]
 ): number[] {
-  return drawType === 'algorithmic'
-    ? generateAlgorithmicDraw(scorePool)
-    : generateRandomDraw();
+  return generateDrawNumbersForType(drawType, scorePool);
 }
 
 export async function countDrawWinners(drawId: string) {

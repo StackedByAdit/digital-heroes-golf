@@ -46,11 +46,11 @@ export const CheckoutSchema = z.object({
 
 export const CreateDrawSchema = z.object({
   month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
-  draw_type: z.enum(['random', 'algorithmic']),
+  draw_type: z.enum(['random', 'algorithmic', 'algorithmic_least']),
 });
 
 export const UpdateDrawSchema = z.object({
-  draw_type: z.enum(['random', 'algorithmic']).optional(),
+  draw_type: z.enum(['random', 'algorithmic', 'algorithmic_least']).optional(),
   regenerate_numbers: z.boolean().optional(),
 });
 

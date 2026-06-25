@@ -2,12 +2,11 @@ import { addMonths, format, startOfMonth } from 'date-fns';
 import { calculateCharityContribution } from '@/lib/charity/helpers';
 import {
   calculatePrizePools,
-  DEFAULT_MONTHLY_FEE,
+  totalMonthlyPoolContribution,
 } from '@/lib/drawEngine';
-import { createAdminClient } from '@/lib/supabase/server';
 import { resolveRolloverForMonth } from '@/lib/draw/processing';
+import { fetchPlatformAccessProfiles } from '@/lib/subscription/subscribers';
 import { getMonthKey } from '@/lib/utils';
-import type { Profile } from '@/types';
 
 export type PublicStats = {
   charity_raised_this_month: number;
@@ -34,13 +33,9 @@ export async function getPublicStats(): Promise<PublicStats> {
   }
 
   try {
-    const admin = createAdminClient();
     const currentMonth = getMonthKey();
 
-    const { data: profiles } = await admin.from('profiles').select('*');
-    const activeProfiles = ((profiles ?? []) as Profile[]).filter(
-      (profile) => profile.subscription_status === 'active'
-    );
+    const activeProfiles = await fetchPlatformAccessProfiles();
 
     let charityRaisedThisMonth = 0;
     for (const profile of activeProfiles) {
@@ -54,8 +49,9 @@ export async function getPublicStats(): Promise<PublicStats> {
     const rolloverAmount = await resolveRolloverForMonth(currentMonth);
 
     const prizePools = calculatePrizePools({
-      subscriberCount: activeProfiles.length,
-      monthlyFeePerUser: DEFAULT_MONTHLY_FEE,
+      totalMonthlyPool: totalMonthlyPoolContribution(
+        activeProfiles.map((profile) => profile.subscription_plan)
+      ),
       rolloverAmount,
     });
 
