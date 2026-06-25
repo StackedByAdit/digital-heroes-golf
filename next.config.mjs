@@ -1,7 +1,7 @@
-/** @type {import('next').NextConfig} */
+﻿/** @type {import('next').NextConfig} */
 const config = {
   images: {
-    domains: ['YOUR_SUPABASE_PROJECT.supabase.co'],
+    domains: ['rcvtviifaehmfrklqjap.supabase.co'],
   },
   experimental: {
     optimizePackageImports: ['framer-motion', 'lucide-react'],
