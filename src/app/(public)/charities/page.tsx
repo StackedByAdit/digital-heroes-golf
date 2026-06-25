@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { pickFeaturedCharity } from '@/lib/charity/helpers';
 import { attachEventsToCharities } from '@/lib/charity/server';
 import { createPageMetadata } from '@/lib/seo/metadata';
 import { CharitiesDirectory } from '@/components/public/CharitiesDirectory';
@@ -23,7 +24,7 @@ async function getCharities() {
 
 export default async function CharitiesPage() {
   const charities = await getCharities();
-  const featuredCharity = charities.find((charity) => charity.is_featured) ?? null;
+  const featuredCharity = pickFeaturedCharity(charities);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
