@@ -1,4 +1,4 @@
-# Digital Heroes Golf
+﻿# Digital Heroes Golf
 
 Digital Heroes Golf is a subscription-driven web application that turns monthly Stableford golf scores into prize-draw entries while directing a configurable share of each subscription to charity. Members can log scores, follow draw results, manage their charity allocation, donate independently, and upload winner verification documents from a polished dashboard.
 
@@ -355,8 +355,8 @@ public/images/   local marketing and charity images
 - Use a new Supabase project and a new Vercel account for assignment deployment.
 - Never commit `.env.local` or production secrets.
 - Keep Stripe in test mode for recruiter review unless production billing is explicitly required.
-- After Vercel assigns a domain, update `NEXT_PUBLIC_APP_URL` and the Stripe production webhook endpoint.
-- Replace placeholder domains in `vercel.json` and `next.config.mjs` before final production submission.
+- After Vercel assigns a domain, set `NEXT_PUBLIC_APP_URL` in the Vercel dashboard and update the Stripe production webhook endpoint.
+- Replace the Supabase image domain placeholder in `next.config.mjs` before final production submission.
 
 ## License
 

@@ -125,6 +125,54 @@ CREATE TABLE public.draw_entries (
 );
 
 -- ---------------------------------------------------------------------------
+-- TEAMS MODULE (future activation)
+-- Scaffold only — not wired into UI yet.
+-- Allows corporate accounts to manage multiple golfers under one billing entity.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE public.teams (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  owner_id uuid REFERENCES public.profiles (id) ON DELETE SET NULL,
+  subscription_status text NOT NULL DEFAULT 'inactive'
+    CHECK (subscription_status IN ('active', 'inactive', 'cancelled', 'past_due')),
+  max_members int NOT NULL DEFAULT 10 CHECK (max_members > 0),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE public.team_members (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  team_id uuid NOT NULL REFERENCES public.teams (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
+  role text NOT NULL DEFAULT 'member'
+    CHECK (role IN ('owner', 'admin', 'member')),
+  joined_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (team_id, user_id)
+);
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS team_id uuid REFERENCES public.teams (id) ON DELETE SET NULL;
+
+-- ---------------------------------------------------------------------------
+-- CAMPAIGNS MODULE (future activation)
+-- Scaffold only — enables time-limited charity drives,
+-- sponsored draws, and corporate fundraising events.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE public.campaigns (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  charity_id uuid REFERENCES public.charities (id) ON DELETE SET NULL,
+  target_amount numeric NOT NULL DEFAULT 0 CHECK (target_amount >= 0),
+  raised_amount numeric NOT NULL DEFAULT 0 CHECK (raised_amount >= 0),
+  starts_at timestamptz,
+  ends_at timestamptz,
+  is_active boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- ---------------------------------------------------------------------------
 -- Indexes
 -- ---------------------------------------------------------------------------
 
@@ -145,6 +193,12 @@ CREATE INDEX idx_donations_status ON public.donations (status);
 CREATE INDEX idx_user_notifications_user_id ON public.user_notifications (user_id);
 CREATE INDEX idx_user_notifications_unread ON public.user_notifications (user_id, read_at)
   WHERE read_at IS NULL;
+CREATE INDEX idx_profiles_team_id ON public.profiles (team_id);
+CREATE INDEX idx_teams_owner_id ON public.teams (owner_id);
+CREATE INDEX idx_team_members_team_id ON public.team_members (team_id);
+CREATE INDEX idx_team_members_user_id ON public.team_members (user_id);
+CREATE INDEX idx_campaigns_charity_id ON public.campaigns (charity_id);
+CREATE INDEX idx_campaigns_is_active ON public.campaigns (is_active);
 
 -- ---------------------------------------------------------------------------
 -- Helper functions
@@ -377,6 +431,9 @@ ALTER TABLE public.draws ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.draw_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.donations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
 
 -- profiles
 CREATE POLICY "profiles_select_own"

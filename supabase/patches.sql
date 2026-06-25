@@ -147,3 +147,54 @@ CREATE POLICY "charity_images_admin_delete"
   FOR DELETE
   TO authenticated
   USING (bucket_id = 'charity-images' AND public.is_admin());
+
+-- ---------------------------------------------------------------------------
+-- Scalability scaffolds: teams, campaigns, profiles.team_id
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS public.teams (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  owner_id uuid REFERENCES public.profiles (id) ON DELETE SET NULL,
+  subscription_status text NOT NULL DEFAULT 'inactive'
+    CHECK (subscription_status IN ('active', 'inactive', 'cancelled', 'past_due')),
+  max_members int NOT NULL DEFAULT 10 CHECK (max_members > 0),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.team_members (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  team_id uuid NOT NULL REFERENCES public.teams (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
+  role text NOT NULL DEFAULT 'member'
+    CHECK (role IN ('owner', 'admin', 'member')),
+  joined_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (team_id, user_id)
+);
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS team_id uuid REFERENCES public.teams (id) ON DELETE SET NULL;
+
+CREATE TABLE IF NOT EXISTS public.campaigns (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text,
+  charity_id uuid REFERENCES public.charities (id) ON DELETE SET NULL,
+  target_amount numeric NOT NULL DEFAULT 0 CHECK (target_amount >= 0),
+  raised_amount numeric NOT NULL DEFAULT 0 CHECK (raised_amount >= 0),
+  starts_at timestamptz,
+  ends_at timestamptz,
+  is_active boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_profiles_team_id ON public.profiles (team_id);
+CREATE INDEX IF NOT EXISTS idx_teams_owner_id ON public.teams (owner_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_team_id ON public.team_members (team_id);
+CREATE INDEX IF NOT EXISTS idx_team_members_user_id ON public.team_members (user_id);
+CREATE INDEX IF NOT EXISTS idx_campaigns_charity_id ON public.campaigns (charity_id);
+CREATE INDEX IF NOT EXISTS idx_campaigns_is_active ON public.campaigns (is_active);
+
+ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
