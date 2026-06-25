@@ -6,14 +6,17 @@ import {
   calculatePrizePools,
   countMatches,
   generateAlgorithmicDraw,
+  generateAlgorithmicLeastDraw,
   generateRandomDraw,
   getMatchType,
   splitPrize,
+  totalMonthlyPoolContribution,
 } from '../src/lib/drawEngine';
 import {
   buildSimulation,
   eligibleDrawSubscribers,
   generateDrawNumbers,
+  prizePoolsForSubscribers,
   type SubscriberWithScores,
 } from '../src/lib/draw/processing';
 import type { Draw } from '../src/types';
@@ -42,7 +45,7 @@ for (let i = 0; i < 50; i++) {
 }
 console.log('✓ Random draw produces 5 unique numbers in 1–45');
 
-// --- Algorithmic draw ---
+// --- Algorithmic draw (most frequent) ---
 const biasedPool = Array(100).fill(7).concat(Array(100).fill(12));
 let sevenCount = 0;
 let twelveCount = 0;
@@ -59,6 +62,20 @@ assert(
 );
 console.log('✓ Algorithmic draw favours high-frequency scores');
 
+// --- Algorithmic draw (least frequent) ---
+const rarePool = Array(100).fill(7).concat(Array(5).fill(40));
+let fortyCount = 0;
+for (let i = 0; i < trials; i++) {
+  const drawn = generateAlgorithmicLeastDraw(rarePool);
+  assert(isValidDraw(drawn), `algorithmic least draw invalid: ${drawn.join(',')}`);
+  if (drawn.includes(40)) fortyCount += 1;
+}
+assert(
+  fortyCount > trials * 0.35,
+  `algorithmic least draw should favour rare scores (40: ${fortyCount} of ${trials})`
+);
+console.log('✓ Algorithmic least draw favours low-frequency scores');
+
 assert(
   isValidDraw(generateAlgorithmicDraw([])),
   'algorithmic with empty pool falls back to random'
@@ -68,8 +85,10 @@ console.log('✓ Algorithmic empty pool falls back to random');
 // --- generateDrawNumbers routing ---
 const randomNums = generateDrawNumbers('random', [7, 7, 7]);
 const algoNums = generateDrawNumbers('algorithmic', biasedPool);
+const algoLeastNums = generateDrawNumbers('algorithmic_least', rarePool);
 assert(isValidDraw(randomNums), 'generateDrawNumbers random invalid');
 assert(isValidDraw(algoNums), 'generateDrawNumbers algorithmic invalid');
+assert(isValidDraw(algoLeastNums), 'generateDrawNumbers algorithmic_least invalid');
 console.log('✓ generateDrawNumbers routes by draw_type');
 
 // --- Prize pools ---
@@ -83,6 +102,40 @@ assertEqual(pools.jackpot, 800, 'jackpot with rollover');
 assertEqual(pools.pool4match, 350, 'pool4match');
 assertEqual(pools.pool3match, 250, 'pool3match');
 console.log('✓ Prize pool calculation');
+
+const mixedPool = totalMonthlyPoolContribution(['monthly', 'yearly', 'monthly']);
+assertEqual(Math.round(mixedPool * 100) / 100, 28.33, 'plan-weighted monthly pool');
+
+const mixedPools = calculatePrizePools({
+  totalMonthlyPool: mixedPool,
+  rolloverAmount: 0,
+});
+assertEqual(mixedPools.jackpot, 11.33, 'mixed plan jackpot');
+console.log('✓ Plan-weighted prize pool contribution');
+
+const mockSubscribers: SubscriberWithScores[] = [
+  {
+    profile: {
+      id: 'm1',
+      email: 'm@test.com',
+      full_name: 'Monthly',
+      subscription_plan: 'monthly',
+    },
+    scores: [],
+  },
+  {
+    profile: {
+      id: 'y1',
+      email: 'y@test.com',
+      full_name: 'Yearly',
+      subscription_plan: 'yearly',
+    },
+    scores: [],
+  },
+];
+const subscriberPools = prizePoolsForSubscribers(mockSubscribers, 0);
+assertEqual(subscriberPools.totalPool, 18.33, 'prizePoolsForSubscribers total');
+console.log('✓ prizePoolsForSubscribers uses plan fees');
 
 assertEqual(splitPrize(350, 3), 116.67, 'splitPrize 4-match');
 assertEqual(splitPrize(250, 2), 125, 'splitPrize 3-match');
@@ -111,20 +164,40 @@ const mockDraw: Draw = {
 
 const subscribers: SubscriberWithScores[] = [
   {
-    profile: { id: 'u1', email: 'a@test.com', full_name: 'Alice' },
-    scores: [7, 12, 19, 33, 40], // 3-match
+    profile: {
+      id: 'u1',
+      email: 'a@test.com',
+      full_name: 'Alice',
+      subscription_plan: 'monthly',
+    },
+    scores: [7, 12, 19, 33, 40],
   },
   {
-    profile: { id: 'u2', email: 'b@test.com', full_name: 'Bob' },
-    scores: [7, 12, 19, 28, 34], // 5-match
+    profile: {
+      id: 'u2',
+      email: 'b@test.com',
+      full_name: 'Bob',
+      subscription_plan: 'monthly',
+    },
+    scores: [7, 12, 19, 28, 34],
   },
   {
-    profile: { id: 'u3', email: 'c@test.com', full_name: 'Carol' },
-    scores: [7, 12, 19, 28, 99], // 4-match
+    profile: {
+      id: 'u3',
+      email: 'c@test.com',
+      full_name: 'Carol',
+      subscription_plan: 'yearly',
+    },
+    scores: [7, 12, 19, 28, 99],
   },
   {
-    profile: { id: 'u4', email: 'd@test.com', full_name: 'Dave' },
-    scores: [10, 11, 13, 14, 15], // no match
+    profile: {
+      id: 'u4',
+      email: 'd@test.com',
+      full_name: 'Dave',
+      subscription_plan: 'monthly',
+    },
+    scores: [10, 11, 13, 14, 15],
   },
 ];
 
