@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { CHARITY_CATEGORIES, charityCategoryLabel } from '@/lib/charity/categories';
+import { charityDisplayImage, excerpt as charityExcerpt } from '@/lib/charity/helpers';
 import { formatCurrency } from '@/lib/utils';
-import { excerpt as charityExcerpt } from '@/lib/charity/helpers';
 import type { Charity, CharityCategory } from '@/types';
 
 interface CharitiesDirectoryProps {
@@ -33,6 +33,9 @@ export function CharitiesDirectory({
   }, [charities, search, category]);
 
   const showFeatured = featuredCharity && !search && category === 'all';
+  const featuredImage = featuredCharity
+    ? charityDisplayImage(featuredCharity, 'featured')
+    : null;
 
   return (
     <div className="space-y-10">
@@ -99,10 +102,10 @@ export function CharitiesDirectory({
           >
             <div className="grid md:grid-cols-2">
               <div className="aspect-[16/10] bg-gray-100 md:aspect-auto">
-                {featuredCharity.image_url ? (
+                {featuredImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={featuredCharity.image_url}
+                    src={featuredImage}
                     alt={featuredCharity.name}
                     className="h-full w-full object-cover"
                   />

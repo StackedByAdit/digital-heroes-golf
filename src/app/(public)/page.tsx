@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { FAIRWAY_FUTURES_CHARITY_ID } from '@/lib/charity/helpers';
 import { attachEventsToCharities } from '@/lib/charity/server';
 import { getPublicStats } from '@/lib/public/stats';
 import { createPageMetadata } from '@/lib/seo/metadata';
@@ -13,13 +14,24 @@ export const dynamic = 'force-dynamic';
 
 async function getFeaturedCharity() {
   const supabase = await createClient();
-  const { data } = await supabase
+
+  let { data } = await supabase
     .from('charities')
     .select('*')
+    .eq('id', FAIRWAY_FUTURES_CHARITY_ID)
     .eq('is_active', true)
     .eq('is_featured', true)
-    .limit(1)
     .maybeSingle();
+
+  if (!data) {
+    ({ data } = await supabase
+      .from('charities')
+      .select('*')
+      .eq('is_active', true)
+      .eq('is_featured', true)
+      .limit(1)
+      .maybeSingle());
+  }
 
   if (!data) return null;
 
