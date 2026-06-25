@@ -21,6 +21,28 @@ export function mapStripeSubscriptionStatus(
   }
 }
 
+export function subscriptionPeriodEndIso(
+  subscription: Stripe.Subscription
+): string | null {
+  const periodEnd = (subscription as { current_period_end?: number })
+    .current_period_end;
+  if (!periodEnd) return null;
+  return new Date(periodEnd * 1000).toISOString();
+}
+
+export function resolveProfileSubscriptionStatus(
+  subscription: Stripe.Subscription
+): SubscriptionStatus {
+  if (
+    subscription.cancel_at_period_end &&
+    (subscription.status === 'active' || subscription.status === 'trialing')
+  ) {
+    return 'cancelled';
+  }
+
+  return mapStripeSubscriptionStatus(subscription.status);
+}
+
 export function planFromStripePrice(
   priceId: string | undefined
 ): SubscriptionPlan | null {

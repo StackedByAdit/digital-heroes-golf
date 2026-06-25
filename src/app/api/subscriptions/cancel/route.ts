@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import { notifySubscriptionCancelledEmail } from '@/lib/email/notifications';
+import { subscriptionPeriodEndIso } from '@/lib/stripe/subscription-sync';
 import { stripe } from '@/lib/stripe/server';
 
 export async function POST() {
@@ -37,21 +38,23 @@ export async function POST() {
       cancel_at_period_end: true,
     });
 
+    const periodEndIso = subscriptionPeriodEndIso(subscription);
+    const periodEnd = periodEndIso
+      ? format(new Date(periodEndIso), 'd MMMM yyyy')
+      : 'the end of your billing period';
+
     const admin = createAdminClient();
     const { error: updateError } = await admin
       .from('profiles')
-      .update({ subscription_status: 'cancelled' })
+      .update({
+        subscription_status: 'cancelled',
+        subscription_ends_at: periodEndIso,
+      })
       .eq('id', user.id);
 
     if (updateError) {
       throw new Error(updateError.message);
     }
-
-    const periodEndUnix = (subscription as { current_period_end?: number })
-      .current_period_end;
-    const periodEnd = periodEndUnix
-      ? format(new Date(periodEndUnix * 1000), 'd MMMM yyyy')
-      : 'the end of your billing period';
 
     if (profile.email) {
       notifySubscriptionCancelledEmail({
@@ -62,8 +65,7 @@ export async function POST() {
     }
 
     return NextResponse.json({
-      message:
-        'Subscription cancelled. Access remains until the end of your billing period, but dashboard access is now restricted per account policy.',
+      message: `Subscription cancelled. You keep full access until ${periodEnd}.`,
     });
   } catch (error) {
     console.error('[subscription cancel]', error);

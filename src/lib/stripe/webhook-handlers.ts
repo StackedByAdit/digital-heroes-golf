@@ -1,9 +1,10 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import type { SubscriptionPlan, SubscriptionStatus } from '@/types';
 import {
-  mapStripeSubscriptionStatus,
   planFromMetadata,
   planFromStripePrice,
+  resolveProfileSubscriptionStatus,
+  subscriptionPeriodEndIso,
 } from '@/lib/stripe/subscription-sync';
 import type Stripe from 'stripe';
 import {
@@ -91,13 +92,14 @@ export async function syncProfileFromSubscription(
     planFromStripePrice(priceId);
 
   const status =
-    overrides?.status ?? mapStripeSubscriptionStatus(subscription.status);
+    overrides?.status ?? resolveProfileSubscriptionStatus(subscription);
 
   const supabase = createAdminClient();
   const update: Record<string, unknown> = {
     subscription_status: status,
     stripe_subscription_id: subscription.id,
     stripe_customer_id: customerId,
+    subscription_ends_at: subscriptionPeriodEndIso(subscription),
   };
 
   if (plan) {
@@ -132,7 +134,8 @@ export async function syncProfileFromSubscription(
 export async function updateProfileSubscriptionStatus(
   customerId: string,
   status: SubscriptionStatus,
-  subscriptionId?: string | null
+  subscriptionId?: string | null,
+  subscriptionEndsAt?: string | null
 ) {
   const profile = await findProfileByCustomerId(customerId);
 
@@ -148,6 +151,10 @@ export async function updateProfileSubscriptionStatus(
     update.stripe_subscription_id = subscriptionId;
   }
 
+  if (subscriptionEndsAt !== undefined) {
+    update.subscription_ends_at = subscriptionEndsAt;
+  }
+
   const { error } = await supabase
     .from('profiles')
     .update(update)
@@ -159,7 +166,7 @@ export async function updateProfileSubscriptionStatus(
 }
 
 export async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
-  const status = mapStripeSubscriptionStatus(subscription.status);
+  const status = resolveProfileSubscriptionStatus(subscription);
   await syncProfileFromSubscription(subscription, { status });
   if (status === 'active') {
     notifyWelcomeEmail(subscription).catch(console.error);
@@ -167,11 +174,7 @@ export async function handleSubscriptionCreated(subscription: Stripe.Subscriptio
 }
 
 export async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  const status = subscription.cancel_at_period_end
-    ? 'cancelled'
-    : mapStripeSubscriptionStatus(subscription.status);
-
-  await syncProfileFromSubscription(subscription, { status });
+  await syncProfileFromSubscription(subscription);
 }
 
 export async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
@@ -180,7 +183,7 @@ export async function handleSubscriptionDeleted(subscription: Stripe.Subscriptio
       ? subscription.customer
       : subscription.customer.id;
 
-  await updateProfileSubscriptionStatus(customerId, 'inactive', null);
+  await updateProfileSubscriptionStatus(customerId, 'inactive', null, null);
 }
 
 export async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {

@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { createAdminClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/draw/processing';
 import { notifySubscriptionCancelledEmail } from '@/lib/email/notifications';
+import { subscriptionPeriodEndIso } from '@/lib/stripe/subscription-sync';
 import { stripe } from '@/lib/stripe/server';
 
 type RouteContext = {
@@ -50,18 +51,20 @@ export async function POST(_request: Request, context: RouteContext) {
       cancel_at_period_end: true,
     });
 
+    const periodEndIso = subscriptionPeriodEndIso(subscription);
+    const periodEnd = periodEndIso
+      ? format(new Date(periodEndIso), 'd MMMM yyyy')
+      : 'the end of the billing period';
+
     const { error: updateError } = await admin
       .from('profiles')
-      .update({ subscription_status: 'cancelled' })
+      .update({
+        subscription_status: 'cancelled',
+        subscription_ends_at: periodEndIso,
+      })
       .eq('id', id);
 
     if (updateError) throw new Error(updateError.message);
-
-    const periodEndUnix = (subscription as { current_period_end?: number })
-      .current_period_end;
-    const periodEnd = periodEndUnix
-      ? format(new Date(periodEndUnix * 1000), 'd MMMM yyyy')
-      : 'the end of the billing period';
 
     if (profile.email) {
       notifySubscriptionCancelledEmail({
@@ -72,7 +75,7 @@ export async function POST(_request: Request, context: RouteContext) {
     }
 
     return NextResponse.json({
-      message: `Subscription cancelled. Access ends ${periodEnd}.`,
+      message: `Subscription cancelled. Access continues until ${periodEnd}.`,
     });
   } catch (error) {
     console.error('[admin cancel subscription]', error);
