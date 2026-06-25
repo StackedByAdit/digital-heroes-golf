@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { cn, formatCurrency } from '@/lib/utils';
+import { REQUIRED_SCORE_COUNT } from '@/lib/subscription/access';
 import type { NextDrawInfo } from '@/lib/dashboard/data';
 import type { DrawWithMeta } from '@/lib/draw/processing';
 import type { GolfScore } from '@/types';
@@ -21,7 +22,7 @@ export function DrawParticipationCard({
   const drawScores = scores
     .slice()
     .sort((a, b) => b.score_date.localeCompare(a.score_date))
-    .slice(0, 5)
+    .slice(0, REQUIRED_SCORE_COUNT)
     .slice()
     .sort((a, b) => a.score_date.localeCompare(b.score_date))
     .map((score) => score.score);
@@ -45,7 +46,9 @@ export function DrawParticipationCard({
         >
           {isEntered
             ? 'You are entered for this draw'
-            : 'Subscribe & add scores to enter'}
+            : drawScores.length < REQUIRED_SCORE_COUNT
+              ? `Add ${REQUIRED_SCORE_COUNT - drawScores.length} more score${REQUIRED_SCORE_COUNT - drawScores.length === 1 ? '' : 's'} to enter`
+              : 'Subscribe to enter this draw'}
         </span>
       </div>
 

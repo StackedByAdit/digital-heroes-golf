@@ -9,6 +9,7 @@ import {
   getWinningsSummary,
 } from '@/lib/dashboard/data';
 import { getWinnerDisplayStatus } from '@/lib/winners/helpers';
+import { isDrawEligible, REQUIRED_SCORE_COUNT } from '@/lib/subscription/access';
 import { CharityDashboardCard } from '@/components/dashboard/CharityDashboardCard';
 import { DrawHistory } from '@/components/dashboard/DrawHistory';
 import { DrawParticipationCard } from '@/components/dashboard/DrawParticipationCard';
@@ -46,10 +47,15 @@ export default async function DashboardPage() {
   const drawEntryScores = scores
     .slice()
     .sort((a, b) => b.score_date.localeCompare(a.score_date))
-    .slice(0, 5);
+    .slice(0, REQUIRED_SCORE_COUNT);
 
-  const isEntered =
-    profile.subscription_status === 'active' && drawEntryScores.length === 5;
+  const isEntered = isDrawEligible(
+    profile.subscription_status,
+    drawEntryScores.length,
+    profile.subscription_ends_at
+  );
+
+  const scoresNeeded = Math.max(0, REQUIRED_SCORE_COUNT - drawEntryScores.length);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -59,6 +65,14 @@ export default async function DashboardPage() {
           Your subscription, scores, charity, and draw activity at a glance.
         </p>
       </div>
+
+      {scoresNeeded > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          You need {scoresNeeded} more score{scoresNeeded === 1 ? '' : 's'} to enter
+          the monthly draw. Your last {REQUIRED_SCORE_COUNT} Stableford scores become
+          your draw numbers.
+        </div>
+      )}
 
       {pendingProofWinners.length > 0 && (
         <div className="space-y-4">

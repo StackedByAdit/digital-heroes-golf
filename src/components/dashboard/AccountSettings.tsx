@@ -160,7 +160,8 @@ export function AccountSettings({ profile }: AccountSettingsProps) {
       <section className="rounded-xl border border-red-200 bg-red-50/40 p-6">
         <h2 className="text-lg font-semibold text-red-900">Danger zone</h2>
         <p className="mt-2 text-sm text-red-800">
-          Cancelling your subscription will restrict dashboard access immediately.
+          Cancelling stops renewal at the end of your current billing period. You
+          keep full dashboard access until then.
         </p>
         <Dialog.Root open={cancelOpen} onOpenChange={setCancelOpen}>
           <Dialog.Trigger asChild>
@@ -178,8 +179,8 @@ export function AccountSettings({ profile }: AccountSettingsProps) {
                 Cancel subscription?
               </Dialog.Title>
               <Dialog.Description className="mt-2 text-sm text-gray-600">
-                This action cannot be undone from the dashboard. You will lose access
-                to score entry and draw participation.
+                Your plan will remain active until the end of your current billing
+                period. After that, score entry and draw participation will stop.
               </Dialog.Description>
               <div className="mt-6 flex justify-end gap-3">
                 <Dialog.Close asChild>

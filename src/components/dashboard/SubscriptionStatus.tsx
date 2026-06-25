@@ -27,7 +27,7 @@ const STATUS_STYLES: Record<
     className: 'bg-gray-100 text-gray-700 border-gray-200',
   },
   cancelled: {
-    label: 'Cancelled',
+    label: 'Cancelling',
     className: 'bg-amber-100 text-amber-800 border-amber-200',
   },
   past_due: {
@@ -166,9 +166,8 @@ export function SubscriptionStatus({
                   </Dialog.Close>
                 </div>
                 <Dialog.Description className="mt-2 text-sm text-gray-600">
-                  Your plan will be set to cancelled and dashboard access will be
-                  restricted immediately. Billing may continue until the end of
-                  your current Stripe billing period.
+                  Your plan stays active until the end of your current billing period.
+                  You keep full access until then.
                 </Dialog.Description>
                 <div className="mt-6 flex justify-end gap-3">
                   <Dialog.Close asChild>
