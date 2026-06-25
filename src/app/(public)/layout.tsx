@@ -15,7 +15,7 @@ export default async function PublicLayout({
   return (
     <div className="flex min-h-screen flex-col bg-brand-cream">
       <Navbar initialAuthenticated={Boolean(user)} />
-      <div className="flex-1">{children}</div>
+      <div className="flex-1 pt-[4.5rem]">{children}</div>
       <Footer />
     </div>
   );

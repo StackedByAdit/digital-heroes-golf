@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Playfair_Display } from 'next/font/google';
+import { Caveat, Inter, Playfair_Display } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { rootMetadata } from '@/lib/seo/metadata';
 import '@/styles/globals.css';
@@ -16,6 +16,12 @@ const playfair = Playfair_Display({
   display: 'swap',
 });
 
+const caveat = Caveat({
+  subsets: ['latin'],
+  variable: '--font-caveat',
+  display: 'swap',
+});
+
 export const metadata: Metadata = rootMetadata;
 
 export default function RootLayout({
@@ -25,7 +31,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
+      <body
+        className={`${inter.variable} ${playfair.variable} ${caveat.variable} font-sans antialiased`}
+      >
         {children}
         <Toaster
           richColors

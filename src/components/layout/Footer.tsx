@@ -2,14 +2,12 @@ import Link from 'next/link';
 import { Heart, ShieldCheck } from 'lucide-react';
 
 const FOOTER_LINKS = [
-  { href: '/how-it-works', label: 'About' },
   { href: '/how-it-works', label: 'How It Works' },
   { href: '/charities', label: 'Charities' },
+  { href: '/donate', label: 'Donate' },
   { href: '/pricing', label: 'Pricing' },
   { href: '/login', label: 'Log in' },
   { href: '/signup', label: 'Sign up' },
-  { href: '#', label: 'Privacy Policy' },
-  { href: '#', label: 'Terms' },
 ];
 
 const SOCIAL_LINKS = [
@@ -24,17 +22,17 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-4">
           <div className="lg:col-span-2">
-            <p className="font-display text-2xl font-bold">Digital Heroes</p>
+            <p className="font-script text-3xl text-white">Digital Heroes</p>
             <p className="mt-3 max-w-md text-sm leading-relaxed text-brand-cream/80">
               Golf with purpose. Every subscription supports a charity you believe in —
               while giving you a chance to win meaningful monthly prizes.
             </p>
-            <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-brand-cream/70">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-cream/20 px-3 py-1">
+            <div className="mt-6 flex flex-wrap items-center gap-3 text-xs text-brand-cream/70">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-cream/20 bg-white/5 px-3 py-1.5 backdrop-blur-sm">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Powered by Stripe
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-cream/20 px-3 py-1">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-cream/20 bg-white/5 px-3 py-1.5 backdrop-blur-sm">
                 <Heart className="h-3.5 w-3.5" />
                 Charity-verified partners
               </span>
