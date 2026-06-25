@@ -198,3 +198,129 @@ CREATE INDEX IF NOT EXISTS idx_campaigns_is_active ON public.campaigns (is_activ
 ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.campaigns ENABLE ROW LEVEL SECURITY;
+
+-- Subscription period end (renewal or access-until date after scheduled cancel)
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS subscription_ends_at timestamptz;
+
+-- Allow algorithmic (least frequent) draw type
+ALTER TABLE public.draws DROP CONSTRAINT IF EXISTS draws_draw_type_check;
+ALTER TABLE public.draws
+  ADD CONSTRAINT draws_draw_type_check
+  CHECK (draw_type IN ('random', 'algorithmic', 'algorithmic_least'));
+
+-- Align SQL run_draw with app logic: last 5 scores by date, platform-access subscribers
+CREATE OR REPLACE FUNCTION public.run_draw(p_draw_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_draw public.draws%ROWTYPE;
+  v_profile public.profiles%ROWTYPE;
+  v_scores int[];
+  v_match_count int;
+  v_match_type text;
+  v_jackpot_winners int := 0;
+  v_pool4_winners int := 0;
+  v_pool3_winners int := 0;
+BEGIN
+  SELECT * INTO v_draw
+  FROM public.draws
+  WHERE id = p_draw_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Draw not found: %', p_draw_id;
+  END IF;
+
+  IF v_draw.status <> 'published' THEN
+    RAISE EXCEPTION 'Draw must be published before processing (current status: %)', v_draw.status;
+  END IF;
+
+  DELETE FROM public.draw_entries
+  WHERE draw_id = p_draw_id;
+
+  FOR v_profile IN
+    SELECT *
+    FROM public.profiles
+    WHERE subscription_status IN ('active', 'past_due', 'cancelled')
+  LOOP
+    IF v_profile.subscription_status = 'cancelled'
+      AND v_profile.subscription_ends_at IS NOT NULL
+      AND v_profile.subscription_ends_at <= now() THEN
+      CONTINUE;
+    END IF;
+
+    IF v_profile.subscription_status = 'inactive' THEN
+      CONTINUE;
+    END IF;
+
+    SELECT ARRAY_AGG(score ORDER BY score ASC)
+    INTO v_scores
+    FROM (
+      SELECT gs.score
+      FROM public.golf_scores gs
+      WHERE gs.user_id = v_profile.id
+      ORDER BY gs.score_date DESC
+      LIMIT 5
+    ) top_scores;
+
+    IF v_scores IS NULL OR array_length(v_scores, 1) < 5 THEN
+      CONTINUE;
+    END IF;
+
+    v_match_count := public.count_score_matches(v_scores, v_draw.drawn_numbers);
+
+    v_match_type := CASE
+      WHEN v_match_count >= 5 THEN '5-match'
+      WHEN v_match_count = 4 THEN '4-match'
+      WHEN v_match_count = 3 THEN '3-match'
+      ELSE NULL
+    END;
+
+    INSERT INTO public.draw_entries (
+      draw_id,
+      user_id,
+      user_scores,
+      match_type
+    )
+    VALUES (
+      p_draw_id,
+      v_profile.id,
+      v_scores,
+      v_match_type
+    );
+  END LOOP;
+
+  SELECT COUNT(*) INTO v_jackpot_winners
+  FROM public.draw_entries
+  WHERE draw_id = p_draw_id AND match_type = '5-match';
+
+  SELECT COUNT(*) INTO v_pool4_winners
+  FROM public.draw_entries
+  WHERE draw_id = p_draw_id AND match_type = '4-match';
+
+  SELECT COUNT(*) INTO v_pool3_winners
+  FROM public.draw_entries
+  WHERE draw_id = p_draw_id AND match_type = '3-match';
+
+  IF v_jackpot_winners > 0 THEN
+    UPDATE public.draw_entries
+    SET prize_amount = v_draw.jackpot_amount / v_jackpot_winners
+    WHERE draw_id = p_draw_id AND match_type = '5-match';
+  END IF;
+
+  IF v_pool4_winners > 0 THEN
+    UPDATE public.draw_entries
+    SET prize_amount = v_draw.pool_4match / v_pool4_winners
+    WHERE draw_id = p_draw_id AND match_type = '4-match';
+  END IF;
+
+  IF v_pool3_winners > 0 THEN
+    UPDATE public.draw_entries
+    SET prize_amount = v_draw.pool_3match / v_pool3_winners
+    WHERE draw_id = p_draw_id AND match_type = '3-match';
+  END IF;
+END;
+$$;
