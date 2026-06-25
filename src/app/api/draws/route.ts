@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
-import { calculatePrizePools } from '@/lib/drawEngine';
 import {
-  DEFAULT_MONTHLY_FEE,
   fetchActiveSubscribersWithScores,
   flattenScorePool,
   generateDrawNumbers,
+  prizePoolsForSubscribers,
   requireAdmin,
   requireAuth,
   resolveRolloverForMonth,
@@ -109,11 +108,7 @@ export async function POST(request: Request) {
     const drawnNumbers = generateDrawNumbers(draw_type, scorePool);
     const rolloverAmount = await resolveRolloverForMonth(month);
 
-    const pools = calculatePrizePools({
-      subscriberCount: subscribers.length,
-      monthlyFeePerUser: DEFAULT_MONTHLY_FEE,
-      rolloverAmount,
-    });
+    const pools = prizePoolsForSubscribers(subscribers, rolloverAmount);
 
     const { data: draw, error: insertError } = await admin
       .from('draws')

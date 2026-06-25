@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { cn, formatCurrency, getMonthKey } from '@/lib/utils';
+import { drawTypeLabel, nextDrawType } from '@/lib/drawEngine';
 import type { Draw, DrawStatus, DrawType } from '@/types';
 import type { DrawWithMeta } from '@/lib/draw/processing';
 
@@ -141,7 +142,7 @@ export function DrawManager() {
   }
 
   async function handleToggleDrawType(draw: Draw) {
-    const nextType = draw.draw_type === 'random' ? 'algorithmic' : 'random';
+    const nextType = nextDrawType(draw.draw_type);
     setBusyDrawId(draw.id);
     try {
       const response = await fetch(`/api/draws/${draw.id}`, {
@@ -238,7 +239,8 @@ export function DrawManager() {
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
             >
               <option value="random">Random</option>
-              <option value="algorithmic">Algorithmic</option>
+              <option value="algorithmic">Algorithmic (most frequent)</option>
+              <option value="algorithmic_least">Algorithmic (least frequent)</option>
             </select>
           </div>
           <div className="flex items-end">
@@ -273,7 +275,9 @@ export function DrawManager() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-gray-900">{draw.month}</p>
-                      <p className="mt-1 text-xs capitalize text-gray-500">{draw.draw_type}</p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {drawTypeLabel(draw.draw_type)}
+                      </p>
                     </div>
                     <span
                       className={cn(
@@ -317,7 +321,7 @@ export function DrawManager() {
                   {draws.map((draw) => (
                     <tr key={draw.id} className="score-row-hover">
                       <td className="px-4 py-3 font-medium">{draw.month}</td>
-                      <td className="px-4 py-3 capitalize">{draw.draw_type}</td>
+                      <td className="px-4 py-3">{drawTypeLabel(draw.draw_type)}</td>
                       <td className="px-4 py-3">
                         <span
                           className={cn(
@@ -486,7 +490,7 @@ function DrawRowActions({
             disabled={busyDrawId === draw.id}
             className="btn-interactive inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium hover:bg-gray-50"
           >
-            {draw.draw_type === 'random' ? 'Algorithmic' : 'Random'}
+            {drawTypeLabel(nextDrawType(draw.draw_type))}
           </button>
           <button
             type="button"

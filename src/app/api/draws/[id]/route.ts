@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
-import { calculatePrizePools } from '@/lib/drawEngine';
 import {
-  DEFAULT_MONTHLY_FEE,
   fetchActiveSubscribersWithScores,
   flattenScorePool,
   generateDrawNumbers,
+  prizePoolsForSubscribers,
   requireAdmin,
   resolveRolloverForMonth,
 } from '@/lib/draw/processing';
@@ -75,11 +74,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       update.drawn_numbers = generateDrawNumbers(drawType, scorePool);
 
       const rolloverAmount = await resolveRolloverForMonth(draw.month);
-      const pools = calculatePrizePools({
-        subscriberCount: subscribers.length,
-        monthlyFeePerUser: DEFAULT_MONTHLY_FEE,
-        rolloverAmount,
-      });
+      const pools = prizePoolsForSubscribers(subscribers, rolloverAmount);
 
       update.jackpot_amount = pools.jackpot;
       update.pool_4match = pools.pool4match;

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import {
   applyJackpotRollover,
+  applyPrizePoolsToDraw,
   buildSimulation,
   eligibleDrawSubscribers,
   fetchActiveSubscribersWithScores,
@@ -26,27 +27,29 @@ export async function POST(_request: Request, context: RouteContext) {
   try {
     const admin = createAdminClient();
 
-    const { data: draw, error: drawError } = await admin
+    const { data: existingDraw, error: drawError } = await admin
       .from('draws')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (drawError || !draw) {
+    if (drawError || !existingDraw) {
       return NextResponse.json({ error: 'Draw not found' }, { status: 404 });
     }
 
-    if (draw.status !== 'draft' && draw.status !== 'simulated') {
+    if (existingDraw.status !== 'draft' && existingDraw.status !== 'simulated') {
       return NextResponse.json(
         { error: 'Only draft or simulated draws can be published' },
         { status: 400 }
       );
     }
 
+    const draw = await applyPrizePoolsToDraw(id, existingDraw.month);
+
     const subscribers = eligibleDrawSubscribers(
-      await fetchActiveSubscribersWithScores(),
+      await fetchActiveSubscribersWithScores()
     );
-    const simulation = buildSimulation(draw as Draw, subscribers);
+    const simulation = buildSimulation(draw, subscribers);
 
     await admin.from('draw_entries').delete().eq('draw_id', id);
 
