@@ -5,6 +5,7 @@ import {
   updateSession,
 } from '@/lib/supabase/middleware';
 import { getSupabaseAnonKey, getSupabaseUrl } from '@/lib/supabase/env';
+import { hasPlatformAccess } from '@/lib/subscription/access';
 
 const DASHBOARD_PATHS = ['/dashboard'];
 const SUBSCRIPTION_REQUIRED_PATHS = ['/dashboard'];
@@ -61,9 +62,8 @@ function needsStrictAuth(pathname: string): boolean {
   return false;
 }
 
-function needsProfile(pathname: string): boolean {
-  if (pathname.startsWith('/admin')) return true;
-  if (matchesPath(pathname, DASHBOARD_PATHS)) return true;
+function needsSubscriptionGate(pathname: string): boolean {
+  if (matchesPath(pathname, SUBSCRIPTION_REQUIRED_PATHS)) return true;
   if (pathname.startsWith('/api') && isProtectedApi(pathname)) return true;
   return false;
 }
@@ -99,8 +99,9 @@ export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   let role: string | null = null;
   let subscriptionStatus: string | null = null;
+  let subscriptionEndsAt: string | null = null;
 
-  if (user && needsProfile(pathname)) {
+  if (user) {
     const supabase = createServerClient(
       getSupabaseUrl(),
       getSupabaseAnonKey(),
@@ -118,18 +119,22 @@ export async function middleware(request: NextRequest) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, subscription_status')
+      .select('role, subscription_status, subscription_ends_at')
       .eq('id', user.id)
       .maybeSingle();
 
     role = profile?.role ?? null;
     subscriptionStatus = profile?.subscription_status ?? null;
+    subscriptionEndsAt = profile?.subscription_ends_at ?? null;
     requestHeaders.set('x-user-id', user.id);
     if (role) {
       requestHeaders.set('x-user-role', role);
     }
     if (subscriptionStatus) {
       requestHeaders.set('x-subscription-status', subscriptionStatus);
+    }
+    if (subscriptionEndsAt) {
+      requestHeaders.set('x-subscription-ends-at', subscriptionEndsAt);
     }
   }
 
@@ -142,6 +147,11 @@ export async function middleware(request: NextRequest) {
 
   const dashboardUrl = request.nextUrl.clone();
   dashboardUrl.pathname = '/dashboard';
+
+  const platformAccess = hasPlatformAccess(
+    subscriptionStatus,
+    subscriptionEndsAt
+  );
 
   for (const [legacyPath, targetPath] of Object.entries(LEGACY_DASHBOARD_REDIRECTS)) {
     if (pathname === legacyPath || pathname.startsWith(`${legacyPath}/`)) {
@@ -176,7 +186,6 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // Admin routes
   if (pathname.startsWith('/admin')) {
     if (!user) {
       return finalizeResponse(
@@ -194,7 +203,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Dashboard routes (includes /scores, /draws, etc.)
   if (matchesPath(pathname, DASHBOARD_PATHS)) {
     if (!user) {
       return finalizeResponse(
@@ -206,9 +214,9 @@ export async function middleware(request: NextRequest) {
 
     if (
       role !== 'admin' &&
-      matchesPath(pathname, SUBSCRIPTION_REQUIRED_PATHS) &&
+      needsSubscriptionGate(pathname) &&
       !pathname.startsWith('/dashboard/account') &&
-      subscriptionStatus !== 'active'
+      !platformAccess
     ) {
       return finalizeResponse(
         sessionResponse,
@@ -218,7 +226,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Protected API routes
   if (pathname.startsWith('/api') && !isPublicApi(pathname)) {
     if (isProtectedApi(pathname)) {
       if (!user) {
@@ -241,7 +248,7 @@ export async function middleware(request: NextRequest) {
         role !== 'admin' &&
         !pathname.startsWith('/api/admin') &&
         !pathname.startsWith('/api/winners/upload-proof') &&
-        subscriptionStatus !== 'active' &&
+        !platformAccess &&
         !pathname.startsWith('/api/subscriptions') &&
         !pathname.startsWith('/api/user')
       ) {

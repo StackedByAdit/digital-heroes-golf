@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, LogIn, Menu, UserPlus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useAuthSession } from '@/hooks/useAuthSession';
+import { SignOutButton } from '@/components/auth/SignOutButton';
+import { useNavAuth } from '@/hooks/useNavAuth';
 import { cn } from '@/lib/utils';
 
 const NAV_LINKS = [
@@ -16,16 +17,25 @@ const NAV_LINKS = [
 
 type NavbarProps = {
   initialAuthenticated?: boolean;
+  initialHasDashboardAccess?: boolean;
 };
 
-export function Navbar({ initialAuthenticated = false }: NavbarProps) {
+export function Navbar({
+  initialAuthenticated = false,
+  initialHasDashboardAccess = false,
+}: NavbarProps) {
   const pathname = usePathname();
   const isHome = pathname === '/';
+  const isPricing = pathname === '/pricing';
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { isAuthenticated } = useAuthSession(initialAuthenticated);
+  const { isAuthenticated, hasDashboardAccess } = useNavAuth(
+    initialAuthenticated,
+    initialHasDashboardAccess,
+  );
 
   const overlayHero = isHome && !scrolled;
+  const pendingSubscription = isAuthenticated && !hasDashboardAccess;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -37,6 +47,13 @@ export function Navbar({ initialAuthenticated = false }: NavbarProps) {
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  const signOutClassName = cn(
+    'text-sm font-medium transition',
+    overlayHero
+      ? 'text-white/80 hover:text-white'
+      : 'text-brand-charcoal/70 hover:text-brand-green',
+  );
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 px-4 pt-3 sm:px-6">
@@ -78,7 +95,7 @@ export function Navbar({ initialAuthenticated = false }: NavbarProps) {
         </nav>
 
         <div className="hidden items-center gap-2 sm:gap-3 lg:flex">
-          {isAuthenticated ? (
+          {isAuthenticated && hasDashboardAccess ? (
             <Link
               href="/dashboard"
               className={cn(
@@ -91,6 +108,23 @@ export function Navbar({ initialAuthenticated = false }: NavbarProps) {
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
             </Link>
+          ) : pendingSubscription ? (
+            <>
+              {!isPricing && (
+                <Link
+                  href="/pricing#plans"
+                  className={cn(
+                    'btn-interactive inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition sm:px-5 sm:py-2.5',
+                    overlayHero
+                      ? 'glass-pill text-white hover:bg-black/30'
+                      : 'bg-brand-green text-white hover:bg-brand-green/90',
+                  )}
+                >
+                  Subscribe
+                </Link>
+              )}
+              <SignOutButton className={signOutClassName} />
+            </>
           ) : (
             <>
               <Link
@@ -166,7 +200,7 @@ export function Navbar({ initialAuthenticated = false }: NavbarProps) {
                 overlayHero ? 'border-white/15' : 'border-brand-green/10',
               )}
             >
-              {isAuthenticated ? (
+              {isAuthenticated && hasDashboardAccess ? (
                 <Link
                   href="/dashboard"
                   className={cn(
@@ -178,6 +212,30 @@ export function Navbar({ initialAuthenticated = false }: NavbarProps) {
                 >
                   Dashboard
                 </Link>
+              ) : pendingSubscription ? (
+                <>
+                  {!isPricing && (
+                    <Link
+                      href="/pricing#plans"
+                      className={cn(
+                        'btn-interactive rounded-full px-4 py-2.5 text-center text-sm font-semibold',
+                        overlayHero
+                          ? 'bg-white/20 text-white'
+                          : 'bg-brand-green text-white',
+                      )}
+                    >
+                      Subscribe
+                    </Link>
+                  )}
+                  <SignOutButton
+                    className={cn(
+                      'justify-center rounded-full px-4 py-2.5 text-sm font-medium',
+                      overlayHero
+                        ? 'text-white/90 hover:bg-white/10'
+                        : 'text-brand-charcoal hover:bg-brand-green/10',
+                    )}
+                  />
+                </>
               ) : (
                 <>
                   <Link

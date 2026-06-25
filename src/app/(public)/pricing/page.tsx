@@ -62,7 +62,7 @@ export default function PricingPage() {
         </p>
       </ScrollReveal>
 
-      <div className="mt-14 grid gap-8 lg:grid-cols-2">
+      <div id="plans" className="mt-14 grid scroll-mt-24 gap-8 lg:grid-cols-2">
         <ScrollReveal delay={0.05}>
           <PlanCard
             name="Monthly"

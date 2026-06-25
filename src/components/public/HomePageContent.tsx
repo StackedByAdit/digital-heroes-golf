@@ -15,6 +15,7 @@ type HomePageContentProps = {
   stats: PublicStats;
   featuredCharity: Charity | null;
   initialAuthenticated?: boolean;
+  initialHasDashboardAccess?: boolean;
 };
 
 const STEPS = [
@@ -60,6 +61,7 @@ export function HomePageContent({
   stats,
   featuredCharity,
   initialAuthenticated = false,
+  initialHasDashboardAccess = false,
 }: HomePageContentProps) {
   return (
     <>
@@ -91,7 +93,11 @@ export function HomePageContent({
               Compete every month. Support charities. Win together.
             </p>
 
-            <LandingAuthActions initialAuthenticated={initialAuthenticated} variant="hero" />
+            <LandingAuthActions
+              initialAuthenticated={initialAuthenticated}
+              initialHasDashboardAccess={initialHasDashboardAccess}
+              variant="hero"
+            />
           </ScrollReveal>
         </div>
 
@@ -277,7 +283,11 @@ export function HomePageContent({
             Join a community where every round supports a cause — and every month brings a
             new chance to win.
           </p>
-          <LandingAuthActions initialAuthenticated={initialAuthenticated} variant="footer" />
+          <LandingAuthActions
+            initialAuthenticated={initialAuthenticated}
+            initialHasDashboardAccess={initialHasDashboardAccess}
+            variant="footer"
+          />
           <p className="mt-4 text-xs text-white/65">
             Cancel anytime on monthly plans. 14-day money-back guarantee on your first month.
           </p>
