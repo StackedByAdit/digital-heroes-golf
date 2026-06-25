@@ -3,6 +3,7 @@ import { stripe } from '@/lib/stripe/server';
 import {
   planFromMetadata,
   planFromStripePrice,
+  subscriptionPeriodEndIso,
 } from '@/lib/stripe/subscription-sync';
 import type { SubscriptionPlan } from '@/types';
 import type Stripe from 'stripe';
@@ -68,6 +69,7 @@ export async function activateSubscriptionFromCheckoutSession(
       stripe_subscription_id: subscriptionId,
       stripe_customer_id: customerId,
       charity_id: charityId,
+      subscription_ends_at: subscription ? subscriptionPeriodEndIso(subscription) : null,
     };
 
     if (
