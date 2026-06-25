@@ -25,7 +25,7 @@ body {
 
 @layer components {
   .btn-interactive {
-    @apply transition-transform duration-150 ease-out active:scale-[0.97];
+    @apply touch-manipulation cursor-pointer transition-[transform,opacity] duration-100 ease-out active:scale-[0.98] active:opacity-90;
   }
 
   .nav-link-underline {
@@ -72,6 +72,15 @@ body {
       rgba(8, 28, 48, 0.15) 0%,
       rgba(8, 28, 48, 0.05) 45%,
       rgba(8, 28, 48, 0.35) 100%
+    );
+  }
+
+  .auth-scene-overlay {
+    background: linear-gradient(
+      180deg,
+      rgba(12, 32, 24, 0.35) 0%,
+      rgba(12, 32, 24, 0.25) 50%,
+      rgba(12, 32, 24, 0.45) 100%
     );
   }
 

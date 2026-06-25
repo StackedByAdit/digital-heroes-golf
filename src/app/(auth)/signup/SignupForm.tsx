@@ -5,6 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Check, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { AuthCard } from '@/components/auth/AuthCard';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { AuthStepper } from '@/components/auth/AuthStepper';
+import { authButtonClass, authInputClass } from '@/components/auth/authStyles';
 import { createClient } from '@/lib/supabase/client';
 import { mapSupabaseAuthError } from '@/lib/auth/errors';
 import {
@@ -283,29 +287,14 @@ export default function SignupForm() {
   }
 
   return (
-    <div className="w-full max-w-2xl">
-      <div className="mb-8">
-        <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wider text-brand-charcoal/50">
-          <span className={step >= 1 ? 'text-brand-gold' : ''}>Account</span>
-          <span className={step >= 2 ? 'text-brand-gold' : ''}>Charity</span>
-          <span className={step >= 3 ? 'text-brand-gold' : ''}>Plan</span>
-        </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-brand-green/10">
-          <div
-            className="h-full rounded-full bg-brand-gold transition-all duration-500"
-            style={{ width: `${(step / 3) * 100}%` }}
-          />
-        </div>
-        <p className="mt-2 text-sm text-brand-charcoal/60">Step {step} of 3</p>
-      </div>
-
-      <div className="rounded-2xl border border-brand-green/10 bg-white p-8 shadow-sm">
+    <AuthShell beforeMain={<AuthStepper step={step} />}>
+      <AuthCard size={step === 1 ? 'md' : 'lg'}>
         {step === 1 && (
           <>
-            <h1 className="font-display text-3xl font-bold text-brand-green">
+            <h1 className="text-center font-display text-3xl font-bold text-brand-green sm:text-[2rem]">
               Create your account
             </h1>
-            <p className="mt-2 text-sm text-brand-charcoal/60">
+            <p className="mt-2 text-center text-sm text-brand-charcoal/60">
               Join a community where golf supports the causes you care about.
             </p>
 
@@ -316,7 +305,7 @@ export default function SignupForm() {
                   required
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
-                  className={inputClass}
+                  className={authInputClass}
                 />
               </Field>
               <Field label="Email" id="email">
@@ -327,7 +316,7 @@ export default function SignupForm() {
                   required
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className={inputClass}
+                  className={authInputClass}
                 />
               </Field>
               <Field label="Password" id="password">
@@ -339,11 +328,11 @@ export default function SignupForm() {
                   minLength={8}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className={inputClass}
+                  className={authInputClass}
                 />
               </Field>
               {error && <ErrorMessage message={error} />}
-              <button type="submit" disabled={loading} className={buttonClass}>
+              <button type="submit" disabled={loading} className={authButtonClass}>
                 {loading ? 'Creating account…' : 'Continue'}
               </button>
             </form>
@@ -352,10 +341,10 @@ export default function SignupForm() {
 
         {step === 2 && (
           <>
-            <h1 className="font-display text-3xl font-bold text-brand-green">
+            <h1 className="text-center font-display text-3xl font-bold text-brand-green sm:text-[2rem]">
               Choose your charity
             </h1>
-            <p className="mt-2 text-sm text-brand-charcoal/60">
+            <p className="mt-2 text-center text-sm text-brand-charcoal/60">
               Select a cause and set how much of your subscription goes to them.
             </p>
 
@@ -367,7 +356,7 @@ export default function SignupForm() {
                   placeholder="Search charities…"
                   value={charitySearch}
                   onChange={(event) => setCharitySearch(event.target.value)}
-                  className={`${inputClass} pl-10`}
+                  className={`${authInputClass} pl-10`}
                 />
               </div>
 
@@ -446,7 +435,7 @@ export default function SignupForm() {
               </div>
 
               {error && <ErrorMessage message={error} />}
-              <button type="submit" disabled={loading} className={buttonClass}>
+              <button type="submit" disabled={loading} className={authButtonClass}>
                 {loading ? 'Saving…' : 'Continue to plan'}
               </button>
             </form>
@@ -455,10 +444,10 @@ export default function SignupForm() {
 
         {step === 3 && (
           <>
-            <h1 className="font-display text-3xl font-bold text-brand-green">
+            <h1 className="text-center font-display text-3xl font-bold text-brand-green sm:text-[2rem]">
               Choose your plan
             </h1>
-            <p className="mt-2 text-sm text-brand-charcoal/60">
+            <p className="mt-2 text-center text-sm text-brand-charcoal/60">
               Complete signup with secure Stripe checkout.
             </p>
 
@@ -497,7 +486,7 @@ export default function SignupForm() {
               type="button"
               onClick={handleStep3}
               disabled={loading}
-              className={`${buttonClass} mt-6`}
+              className={`${authButtonClass} mt-6`}
             >
               {loading ? 'Redirecting to checkout…' : 'Continue to Stripe Checkout'}
             </button>
@@ -510,16 +499,10 @@ export default function SignupForm() {
             Sign in
           </Link>
         </p>
-      </div>
-    </div>
+      </AuthCard>
+    </AuthShell>
   );
 }
-
-const inputClass =
-  'mt-1.5 w-full rounded-lg border border-brand-green/15 px-3 py-2.5 text-sm outline-none focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/30';
-
-const buttonClass =
-  'w-full rounded-full bg-brand-green py-3 text-sm font-semibold text-white transition hover:bg-brand-green/90 disabled:opacity-50';
 
 function Field({
   label,
