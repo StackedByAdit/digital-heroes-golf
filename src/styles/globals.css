@@ -50,6 +50,43 @@ body {
     @apply transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md;
   }
 
+  .glass-panel {
+    @apply border border-white/25 bg-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl;
+  }
+
+  .glass-panel-dark {
+    @apply border border-white/10 bg-black/25 shadow-[0_8px_32px_rgba(0,0,0,0.2)] backdrop-blur-xl;
+  }
+
+  .glass-pill {
+    @apply rounded-full border border-white/20 bg-black/20 backdrop-blur-xl;
+  }
+
+  .glass-nav {
+    @apply rounded-full border border-white/40 bg-white/20 shadow-[0_4px_24px_rgba(26,60,46,0.08)] backdrop-blur-xl;
+  }
+
+  .hero-meadow-overlay {
+    background: linear-gradient(
+      180deg,
+      rgba(8, 28, 48, 0.15) 0%,
+      rgba(8, 28, 48, 0.05) 45%,
+      rgba(8, 28, 48, 0.35) 100%
+    );
+  }
+
+  .glass-card {
+    @apply rounded-3xl border border-white/60 bg-white/75 p-6 shadow-[0_4px_24px_rgba(26,60,46,0.06)] backdrop-blur-sm sm:p-8;
+  }
+
+  .btn-hero-primary {
+    @apply inline-flex items-center gap-3 rounded-full bg-white px-6 py-3 text-sm font-semibold text-brand-charcoal shadow-lg transition hover:bg-white/95;
+  }
+
+  .btn-hero-icon {
+    @apply flex h-8 w-8 items-center justify-center rounded-full bg-brand-charcoal text-white;
+  }
+
   .btn-cta {
     @apply relative overflow-hidden transition-all duration-300;
   }

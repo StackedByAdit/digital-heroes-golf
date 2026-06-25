@@ -20,7 +20,11 @@ const config: Config = {
       },
       fontFamily: {
         display: ["var(--font-playfair)", "Georgia", "serif"],
+        script: ["var(--font-caveat)", "cursive"],
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+      },
+      backgroundImage: {
+        "hero-meadow": "url('/images/hero-meadow.jpg')",
       },
     },
   },
