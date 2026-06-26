@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { mapSupabaseAuthError } from '@/lib/auth/errors';
+import { isPermanentAdminEmail } from '@/lib/auth/permanent-admins';
 import { createAdminClient } from '@/lib/supabase/server';
 
 const SignupStep1Schema = z.object({
@@ -62,10 +63,18 @@ export async function POST(request: Request) {
     );
   }
 
-  await admin
-    .from('profiles')
-    .update({ full_name })
-    .eq('id', data.user.id);
+  const profileUpdate: {
+    full_name: string;
+    role?: 'admin';
+    subscription_status?: 'active';
+  } = { full_name };
+
+  if (isPermanentAdminEmail(email)) {
+    profileUpdate.role = 'admin';
+    profileUpdate.subscription_status = 'active';
+  }
+
+  await admin.from('profiles').update(profileUpdate).eq('id', data.user.id);
 
   return NextResponse.json({ userId: data.user.id });
 }
