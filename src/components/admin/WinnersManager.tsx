@@ -13,6 +13,7 @@ import {
 } from '@/lib/winners/helpers';
 import { cn, formatCurrency } from '@/lib/utils';
 import type { Draw } from '@/types';
+import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 
 type TabKey = 'all' | WinnerDisplayStatus;
 
@@ -36,6 +37,8 @@ export function WinnersManager() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [drawFilter, setDrawFilter] = useState('');
   const [draws, setDraws] = useState<Pick<Draw, 'id' | 'month'>[]>([]);
+  const [bulkPayConfirm, setBulkPayConfirm] = useState(false);
+  const [approveTarget, setApproveTarget] = useState<WinnerListRow | null>(null);
 
   const loadWinners = useCallback(async () => {
     setLoading(true);
@@ -117,7 +120,11 @@ export function WinnersManager() {
 
   async function handleBulkApprove() {
     if (selectedIds.length === 0) return;
-    if (!confirm(`Mark ${selectedIds.length} winner(s) as paid?`)) return;
+    setBulkPayConfirm(true);
+  }
+
+  async function confirmBulkApprove() {
+    setBulkPayConfirm(false);
 
     setBulkLoading(true);
     try {
@@ -308,15 +315,7 @@ export function WinnersManager() {
                               <button
                                 type="button"
                                 disabled={actionLoading === winner.id}
-                                onClick={() => {
-                                  if (
-                                    confirm(
-                                      `Approve payout of ${formatCurrency(winner.prize_amount)} to ${winner.winner_name}?`
-                                    )
-                                  ) {
-                                    verifyWinner(winner.id, 'approve');
-                                  }
-                                }}
+                                onClick={() => setApproveTarget(winner)}
                                 className="rounded-md border border-emerald-200 px-2 py-1 text-xs font-medium text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
                               >
                                 Approve
@@ -428,6 +427,33 @@ export function WinnersManager() {
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+
+      <ConfirmDialog
+        open={bulkPayConfirm}
+        title={`Mark ${selectedIds.length} winner${selectedIds.length === 1 ? '' : 's'} as paid?`}
+        description="This will mark all selected winners as paid. This action cannot be undone."
+        confirmLabel="Mark as paid"
+        variant="warning"
+        loading={bulkLoading}
+        onConfirm={confirmBulkApprove}
+        onCancel={() => setBulkPayConfirm(false)}
+      />
+
+      <ConfirmDialog
+        open={approveTarget !== null}
+        title="Approve payout?"
+        description={`Approve payout of ${approveTarget ? formatCurrency(approveTarget.prize_amount) : ''} to ${approveTarget?.winner_name}?`}
+        confirmLabel="Approve"
+        variant="default"
+        loading={actionLoading === approveTarget?.id}
+        onConfirm={() => {
+          if (approveTarget) {
+            verifyWinner(approveTarget.id, 'approve');
+            setApproveTarget(null);
+          }
+        }}
+        onCancel={() => setApproveTarget(null)}
+      />
     </div>
   );
 }
