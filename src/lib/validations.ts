@@ -9,6 +9,15 @@ export const SignupSchema = z.object({
   plan: z.enum(['monthly', 'yearly']),
 });
 
+/** Latest calendar date allowed for a score (UTC today + 1 day for ahead-of-UTC timezones). */
+function maxAllowedScoreDate(): string {
+  const now = new Date();
+  const maxDate = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)
+  );
+  return maxDate.toISOString().slice(0, 10);
+}
+
 const scoreDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -21,12 +30,12 @@ const scoreDateSchema = z
       parsed.getUTCDate() === day
     );
   }, 'Invalid calendar date')
-  .refine((value) => value <= new Date().toISOString().slice(0, 10), {
+  .refine((value) => value <= maxAllowedScoreDate(), {
     message: 'Score date cannot be in the future',
   });
 
 export const ScoreSchema = z.object({
-  score: z.number().int().min(1).max(45),
+  score: z.coerce.number().int().min(1).max(45),
   score_date: scoreDateSchema,
 });
 
@@ -56,7 +65,7 @@ export const UpdateDrawSchema = z.object({
 
 export const CreateCharitySchema = z.object({
   name: z.string().min(2).max(200),
-  description: z.string().min(10).max(5000),
+  description: z.string().min(5).max(5000),
   category: z
     .enum([
       'health',
