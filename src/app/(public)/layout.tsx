@@ -39,7 +39,9 @@ export default async function PublicLayout({
         initialUserName={profile?.full_name ?? null}
       />
       <div className="flex-1 pt-[4.5rem]">{children}</div>
-      <Footer />
+      <Footer
+        hideSubscriptionLinks={dashboardAccessFromNavProfile(profile)}
+      />
     </div>
   );
 }

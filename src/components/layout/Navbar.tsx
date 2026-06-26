@@ -42,6 +42,9 @@ export function Navbar({
 
   const overlayHero = isHome && !scrolled;
   const pendingSubscription = isAuthenticated && !hasDashboardAccess;
+  const navLinks = hasDashboardAccess
+    ? NAV_LINKS.filter((link) => link.href !== '/pricing')
+    : NAV_LINKS;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -80,7 +83,7 @@ export function Navbar({
             overlayHero ? 'glass-pill' : 'glass-nav',
           )}
         >
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -183,7 +186,7 @@ export function Navbar({
           )}
         >
           <nav className="flex flex-col gap-1">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
