@@ -1,8 +1,10 @@
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
+import { NAV_PROFILE_SELECT, type NavProfileRow } from '@/lib/auth/nav-profile';
 import { createClient } from '@/lib/supabase/server';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { SubscriptionWelcomeToast } from '@/components/dashboard/SubscriptionWelcomeToast';
+import type { Profile } from '@/types';
 
 export default async function DashboardLayout({
   children,
@@ -18,18 +20,31 @@ export default async function DashboardLayout({
     redirect('/login?redirectTo=/dashboard');
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from('profiles')
-    .select('full_name, email, subscription_status, subscription_ends_at, role')
+    .select(NAV_PROFILE_SELECT)
     .eq('id', user.id)
     .single();
 
-  if (!profile) {
-    redirect('/login');
+  if (error || !profile) {
+    redirect('/login?redirectTo=/dashboard');
   }
 
+  const navProfile = profile as NavProfileRow;
+  const shellProfile: Pick<
+    Profile,
+    'full_name' | 'email' | 'subscription_status' | 'subscription_ends_at' | 'role'
+  > = {
+    full_name: navProfile.full_name ?? user.email ?? 'Member',
+    email: user.email ?? '',
+    role: (navProfile.role ?? 'subscriber') as Profile['role'],
+    subscription_status: (navProfile.subscription_status ??
+      'inactive') as Profile['subscription_status'],
+    subscription_ends_at: null,
+  };
+
   return (
-    <DashboardShell profile={profile}>
+    <DashboardShell profile={shellProfile}>
       <Suspense fallback={null}>
         <SubscriptionWelcomeToast />
       </Suspense>

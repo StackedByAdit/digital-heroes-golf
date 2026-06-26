@@ -35,10 +35,10 @@ export async function updateSession(
   });
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  return { response, user: session?.user ?? null };
+  return { response, user: user ?? null };
 }
 
 export function mergeSessionCookies(

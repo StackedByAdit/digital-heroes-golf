@@ -3,7 +3,7 @@ import { hasPlatformAccess } from '@/lib/subscription/access';
 type ProfileAccessFields = {
   role: string | null;
   subscription_status: string | null;
-  subscription_ends_at: string | null;
+  subscription_ends_at?: string | null;
 };
 
 export function hasDashboardAccess(profile: ProfileAccessFields | null | undefined): boolean {

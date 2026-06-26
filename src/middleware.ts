@@ -4,8 +4,13 @@ import {
   mergeSessionCookies,
   updateSession,
 } from '@/lib/supabase/middleware';
+import {
+  dashboardAccessFromNavProfile,
+  NAV_PROFILE_SELECT,
+  type NavProfileRow,
+} from '@/lib/auth/nav-profile';
+import { resolvePostLoginRedirect } from '@/lib/auth/post-login';
 import { getSupabaseAnonKey, getSupabaseUrl } from '@/lib/supabase/env';
-import { hasPlatformAccess } from '@/lib/subscription/access';
 
 const DASHBOARD_PATHS = ['/dashboard'];
 const SUBSCRIPTION_REQUIRED_PATHS = ['/dashboard'];
@@ -119,13 +124,14 @@ export async function middleware(request: NextRequest) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, subscription_status, subscription_ends_at')
+      .select(NAV_PROFILE_SELECT)
       .eq('id', user.id)
       .maybeSingle();
 
-    role = profile?.role ?? null;
-    subscriptionStatus = profile?.subscription_status ?? null;
-    subscriptionEndsAt = profile?.subscription_ends_at ?? null;
+    const navProfile = profile as NavProfileRow | null;
+    role = navProfile?.role ?? null;
+    subscriptionStatus = navProfile?.subscription_status ?? null;
+    subscriptionEndsAt = null;
     requestHeaders.set('x-user-id', user.id);
     if (role) {
       requestHeaders.set('x-user-role', role);
@@ -148,9 +154,10 @@ export async function middleware(request: NextRequest) {
   const dashboardUrl = request.nextUrl.clone();
   dashboardUrl.pathname = '/dashboard';
 
-  const platformAccess = hasPlatformAccess(
-    subscriptionStatus,
-    subscriptionEndsAt
+  const canAccessDashboard = dashboardAccessFromNavProfile(
+    role || subscriptionStatus
+      ? { role, subscription_status: subscriptionStatus }
+      : null,
   );
 
   for (const [legacyPath, targetPath] of Object.entries(LEGACY_DASHBOARD_REDIRECTS)) {
@@ -167,16 +174,12 @@ export async function middleware(request: NextRequest) {
 
   if (pathname === '/login' && user) {
     const redirectTo = request.nextUrl.searchParams.get('redirectTo');
-    const safeRedirect =
-      redirectTo &&
-      redirectTo.startsWith('/') &&
-      !redirectTo.startsWith('//') &&
-      !redirectTo.startsWith('/login')
-        ? redirectTo
-        : null;
-
     const destination = request.nextUrl.clone();
-    destination.pathname = safeRedirect ?? '/dashboard';
+    destination.pathname = resolvePostLoginRedirect(redirectTo, {
+      role,
+      subscription_status: subscriptionStatus,
+      subscription_ends_at: subscriptionEndsAt,
+    });
     destination.search = '';
 
     return finalizeResponse(
@@ -212,11 +215,21 @@ export async function middleware(request: NextRequest) {
       );
     }
 
+    // Admins have no subscriber dashboard — send them to admin panel
+    if (role === 'admin') {
+      const adminUrl = request.nextUrl.clone();
+      adminUrl.pathname = '/admin';
+      return finalizeResponse(
+        sessionResponse,
+        NextResponse.redirect(adminUrl),
+        role
+      );
+    }
+
     if (
-      role !== 'admin' &&
       needsSubscriptionGate(pathname) &&
       !pathname.startsWith('/dashboard/account') &&
-      !platformAccess
+      !canAccessDashboard
     ) {
       return finalizeResponse(
         sessionResponse,
@@ -245,10 +258,9 @@ export async function middleware(request: NextRequest) {
       }
 
       if (
-        role !== 'admin' &&
         !pathname.startsWith('/api/admin') &&
         !pathname.startsWith('/api/winners/upload-proof') &&
-        !platformAccess &&
+        !canAccessDashboard &&
         !pathname.startsWith('/api/subscriptions') &&
         !pathname.startsWith('/api/user')
       ) {
