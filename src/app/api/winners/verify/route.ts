@@ -59,6 +59,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (action === 'reject' && !entry.proof_url) {
+      return NextResponse.json(
+        { error: 'No proof submitted to reject' },
+        { status: 400 }
+      );
+    }
+
     if (action === 'approve' && !entry.proof_url) {
       return NextResponse.json(
         { error: 'Proof is required before approval' },

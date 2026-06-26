@@ -10,6 +10,7 @@ interface DrawParticipationCardProps {
   scores: GolfScore[];
   isEntered: boolean;
   drawHistory: DrawWithMeta[];
+  drawsEntered: number;
 }
 
 export function DrawParticipationCard({
@@ -17,6 +18,7 @@ export function DrawParticipationCard({
   scores,
   isEntered,
   drawHistory,
+  drawsEntered,
 }: DrawParticipationCardProps) {
   const recentDraws = drawHistory.filter((draw) => draw.my_entry).slice(0, 3);
   const drawScores = scores
@@ -33,7 +35,8 @@ export function DrawParticipationCard({
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Participation</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Upcoming draw for {nextDraw.label}
+            {drawsEntered} draw{drawsEntered === 1 ? '' : 's'} entered · Upcoming:{' '}
+            {nextDraw.label}
           </p>
         </div>
         <span

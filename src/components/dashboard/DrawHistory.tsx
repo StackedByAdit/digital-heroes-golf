@@ -67,7 +67,21 @@ export function DrawHistory({ draws }: DrawHistoryProps) {
                       : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    {isWinner ? winnerStatusLabel(displayStatus) : '—'}
+                    {isWinner ? (
+                      <span
+                        className={cn(
+                          'rounded-full px-2 py-1 text-xs font-semibold',
+                          displayStatus === 'paid' && 'bg-emerald-100 text-emerald-800',
+                          displayStatus === 'pending' && 'bg-amber-100 text-amber-800',
+                          displayStatus === 'under_review' && 'bg-blue-100 text-blue-800',
+                          displayStatus === 'rejected' && 'bg-red-100 text-red-800',
+                        )}
+                      >
+                        {winnerStatusLabel(displayStatus)}
+                      </span>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {isWinner && (
