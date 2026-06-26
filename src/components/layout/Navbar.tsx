@@ -33,7 +33,7 @@ export function Navbar({
   const isPricing = pathname === '/pricing';
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { isAuthenticated, hasDashboardAccess } = useNavAuth(
+  const { isAuthenticated, hasDashboardAccess, isAdmin } = useNavAuth(
     initialAuthenticated,
     initialHasDashboardAccess || initialIsAdmin,
     initialUserName,
@@ -104,14 +104,14 @@ export function Navbar({
           {isAuthenticated && hasDashboardAccess ? (
             <>
               <Link
-                href="/dashboard"
+                href={isAdmin ? '/admin' : '/dashboard'}
                 className={cn(
                   'btn-interactive',
                   overlayHero ? 'btn-nav-dashboard-overlay' : 'btn-nav-dashboard',
                 )}
               >
                 <LayoutDashboard className="h-4 w-4" />
-                Dashboard
+                {isAdmin ? 'Admin Panel' : 'Dashboard'}
               </Link>
               <SignOutButton className={signOutClassName} />
             </>
@@ -210,7 +210,7 @@ export function Navbar({
               {isAuthenticated && hasDashboardAccess ? (
                 <>
                   <Link
-                    href="/dashboard"
+                    href={isAdmin ? '/admin' : '/dashboard'}
                     className={cn(
                       'btn-interactive rounded-full px-4 py-2.5 text-center text-sm font-semibold',
                       overlayHero
@@ -218,7 +218,7 @@ export function Navbar({
                         : 'btn-nav-dashboard justify-center',
                     )}
                   >
-                    Dashboard
+                    {isAdmin ? 'Admin Panel' : 'Dashboard'}
                   </Link>
                   <SignOutButton
                     className={cn(

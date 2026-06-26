@@ -1,6 +1,7 @@
-import Link from 'next/link';
 import { format } from 'date-fns';
+import Link from 'next/link';
 import { cn, formatCurrency } from '@/lib/utils';
+import { hasPlatformAccess } from '@/lib/subscription/access';
 import type { CharityWithContribution, DashboardProfile, NextDrawInfo, WinningsSummary } from '@/lib/dashboard/data';
 
 interface StatCardsProps {
@@ -8,6 +9,7 @@ interface StatCardsProps {
   nextDraw: NextDrawInfo;
   winnings: WinningsSummary;
   charity: CharityWithContribution;
+  drawsEntered: number;
 }
 
 export function StatCards({
@@ -15,6 +17,7 @@ export function StatCards({
   nextDraw,
   winnings,
   charity,
+  drawsEntered,
 }: StatCardsProps) {
   const planLabel =
     profile.subscription_plan === 'yearly'
@@ -22,6 +25,15 @@ export function StatCards({
       : profile.subscription_plan === 'monthly'
         ? 'Monthly'
         : 'No plan';
+
+  const hasAccess = hasPlatformAccess(
+    profile.subscription_status,
+    profile.subscription_ends_at,
+  );
+
+  const statusLabel = hasAccess
+    ? profile.subscription_status.replace('_', ' ')
+    : 'inactive';
 
   const statusStyles: Record<string, string> = {
     active: 'bg-emerald-100 text-emerald-800',
@@ -39,16 +51,16 @@ export function StatCards({
             <span
               className={cn(
                 'mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold capitalize',
-                statusStyles[profile.subscription_status] ??
+                statusStyles[hasAccess ? profile.subscription_status : 'inactive'] ??
                   'bg-gray-100 text-gray-700',
               )}
             >
-              {profile.subscription_status.replace('_', ' ')}
+              {statusLabel}
             </span>
           </div>
         </div>
         <p className="mt-3 text-sm text-gray-600">
-          Renewal:{' '}
+          {hasAccess ? 'Renewal' : 'Access'}:{' '}
           {profile.renewalDate
             ? format(new Date(profile.renewalDate), 'd MMM yyyy')
             : '—'}
@@ -67,8 +79,15 @@ export function StatCards({
           Est. prize pool: {formatCurrency(nextDraw.estimatedPool)}
         </p>
         <p className="mt-1 text-sm text-gray-500">
-          {nextDraw.subscriberCount} active subscribers
+          {drawsEntered} draw{drawsEntered === 1 ? '' : 's'} entered ·{' '}
+          {nextDraw.subscriberCount} subscribers
         </p>
+        <Link
+          href="/dashboard/draws"
+          className="mt-3 inline-block text-sm font-semibold text-emerald-700 hover:text-emerald-900"
+        >
+          View participation →
+        </Link>
       </StatCard>
 
       <StatCard title="Total Winnings">

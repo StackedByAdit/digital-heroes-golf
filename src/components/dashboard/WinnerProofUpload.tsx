@@ -198,7 +198,8 @@ export function WinnerProofUpload({
           >
             <Upload className="mx-auto h-8 w-8 text-gray-400" />
             <p className="mt-2 text-sm text-gray-600">
-              Drag & drop your score screenshot here, or{' '}
+              Drag & drop a screenshot of your scores from your golf platform
+              (e.g. HowDidIDo, IG), or{' '}
               <label className="cursor-pointer font-semibold text-emerald-700 hover:text-emerald-900">
                 browse files
                 <input
