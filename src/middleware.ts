@@ -189,7 +189,7 @@ export async function middleware(request: NextRequest) {
 
   if (isSubscriptionMarketingPath(pathname) && user && canAccessDashboard) {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = role === 'admin' ? '/admin' : '/dashboard';
+    redirectUrl.pathname = '/';
     redirectUrl.search = '';
     return finalizeResponse(
       sessionResponse,
