@@ -18,11 +18,15 @@ const NAV_LINKS = [
 type NavbarProps = {
   initialAuthenticated?: boolean;
   initialHasDashboardAccess?: boolean;
+  initialIsAdmin?: boolean;
+  initialUserName?: string | null;
 };
 
 export function Navbar({
   initialAuthenticated = false,
   initialHasDashboardAccess = false,
+  initialIsAdmin = false,
+  initialUserName = null,
 }: NavbarProps) {
   const pathname = usePathname();
   const isHome = pathname === '/';
@@ -31,7 +35,9 @@ export function Navbar({
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isAuthenticated, hasDashboardAccess } = useNavAuth(
     initialAuthenticated,
-    initialHasDashboardAccess,
+    initialHasDashboardAccess || initialIsAdmin,
+    initialUserName,
+    initialIsAdmin,
   );
 
   const overlayHero = isHome && !scrolled;
@@ -56,8 +62,8 @@ export function Navbar({
   );
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 px-4 pt-3 sm:px-6">
-      <div className="mx-auto flex max-w-4xl items-center justify-between gap-2 sm:gap-3">
+    <header className="pointer-events-none fixed left-0 right-0 top-0 z-50 px-4 pt-3 sm:px-6">
+      <div className="pointer-events-auto mx-auto flex max-w-4xl items-center justify-between gap-2 sm:gap-3">
         <Link
           href="/"
           className={cn(
@@ -96,18 +102,19 @@ export function Navbar({
 
         <div className="hidden items-center gap-2 sm:gap-3 lg:flex">
           {isAuthenticated && hasDashboardAccess ? (
-            <Link
-              href="/dashboard"
-              className={cn(
-                'btn-interactive inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition sm:px-5 sm:py-2.5',
-                overlayHero
-                  ? 'glass-pill text-white hover:bg-black/30'
-                  : 'bg-brand-green text-white hover:bg-brand-green/90',
-              )}
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboard
-            </Link>
+            <>
+              <Link
+                href="/dashboard"
+                className={cn(
+                  'btn-interactive',
+                  overlayHero ? 'btn-nav-dashboard-overlay' : 'btn-nav-dashboard',
+                )}
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </Link>
+              <SignOutButton className={signOutClassName} />
+            </>
           ) : pendingSubscription ? (
             <>
               {!isPricing && (
@@ -201,17 +208,27 @@ export function Navbar({
               )}
             >
               {isAuthenticated && hasDashboardAccess ? (
-                <Link
-                  href="/dashboard"
-                  className={cn(
-                    'btn-interactive rounded-full px-4 py-2.5 text-center text-sm font-semibold',
-                    overlayHero
-                      ? 'bg-white/20 text-white'
-                      : 'bg-brand-green text-white',
-                  )}
-                >
-                  Dashboard
-                </Link>
+                <>
+                  <Link
+                    href="/dashboard"
+                    className={cn(
+                      'btn-interactive rounded-full px-4 py-2.5 text-center text-sm font-semibold',
+                      overlayHero
+                        ? 'btn-nav-dashboard-overlay justify-center'
+                        : 'btn-nav-dashboard justify-center',
+                    )}
+                  >
+                    Dashboard
+                  </Link>
+                  <SignOutButton
+                    className={cn(
+                      'justify-center rounded-full px-4 py-2.5 text-sm font-medium',
+                      overlayHero
+                        ? 'text-white/90 hover:bg-white/10'
+                        : 'text-brand-charcoal hover:bg-brand-green/10',
+                    )}
+                  />
+                </>
               ) : pendingSubscription ? (
                 <>
                   {!isPricing && (
