@@ -9,6 +9,8 @@ import { AuthShell } from '@/components/auth/AuthShell';
 import { authButtonClass, authInputClass } from '@/components/auth/authStyles';
 import { createClient } from '@/lib/supabase/client';
 import { mapSupabaseAuthError } from '@/lib/auth/errors';
+import { NAV_PROFILE_SELECT, toProfileAccessFields, type NavProfileRow } from '@/lib/auth/nav-profile';
+import { resolvePostLoginRedirect } from '@/lib/auth/post-login';
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   auth_callback_failed: 'Email confirmation failed. Please try signing in again.',
@@ -22,7 +24,7 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirectTo') ?? '/dashboard';
+  const redirectTo = searchParams.get('redirectTo');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,12 +56,32 @@ export default function LoginForm() {
         return;
       }
 
-      if (redirectTo.startsWith('/api/')) {
-        window.location.assign(redirectTo);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        setError('Sign-in succeeded but session was not created. Please try again.');
         return;
       }
 
-      router.push(redirectTo);
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select(NAV_PROFILE_SELECT)
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const destination = resolvePostLoginRedirect(
+        redirectTo,
+        toProfileAccessFields(profile as NavProfileRow | null),
+      );
+
+      if (destination.startsWith('/api/')) {
+        window.location.assign(destination);
+        return;
+      }
+
+      router.push(destination);
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
