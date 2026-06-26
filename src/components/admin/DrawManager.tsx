@@ -2,13 +2,14 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import { Eye, Play, Plus, RefreshCw, Rocket, Trash2, X } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { cn, formatCurrency, getMonthKey } from '@/lib/utils';
 import { drawTypeLabel, nextDrawType } from '@/lib/drawEngine';
 import type { Draw, DrawStatus, DrawType } from '@/types';
 import type { DrawWithMeta } from '@/lib/draw/processing';
+import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 
 type SimulationResponse = {
   draw_id: string;
@@ -36,9 +37,13 @@ const STATUS_STYLES: Record<DrawStatus, string> = {
   published: 'bg-emerald-100 text-emerald-800',
 };
 
-export function DrawManager() {
-  const [draws, setDraws] = useState<DrawWithMeta[]>([]);
-  const [loading, setLoading] = useState(true);
+type DrawManagerProps = {
+  draws: DrawWithMeta[];
+  loading: boolean;
+  onRefresh: () => Promise<void>;
+};
+
+export function DrawManager({ draws, loading, onRefresh }: DrawManagerProps) {
   const [creating, setCreating] = useState(false);
   const [month, setMonth] = useState(getMonthKey());
   const [drawType, setDrawType] = useState<DrawType>('random');
@@ -48,24 +53,8 @@ export function DrawManager() {
   const [publishPreview, setPublishPreview] = useState<SimulationResponse | null>(null);
   const [viewDraw, setViewDraw] = useState<DrawWithMeta | null>(null);
   const [busyDrawId, setBusyDrawId] = useState<string | null>(null);
-
-  const loadDraws = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/draws');
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? 'Failed to load draws');
-      setDraws(data.draws ?? []);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to load draws');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadDraws();
-  }, [loadDraws]);
+  const [deleteTarget, setDeleteTarget] = useState<Draw | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   async function handleCreateDraw(event: React.FormEvent) {
     event.preventDefault();
@@ -79,7 +68,7 @@ export function DrawManager() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'Failed to create draw');
       toast.success(`Draw created for ${month}`);
-      await loadDraws();
+      await onRefresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to create draw');
     } finally {
@@ -97,7 +86,7 @@ export function DrawManager() {
       if (!response.ok) throw new Error(data.error ?? 'Simulation failed');
       setSimulation(data);
       setSimulationOpen(true);
-      await loadDraws();
+      await onRefresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Simulation failed');
     } finally {
@@ -133,7 +122,7 @@ export function DrawManager() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'Regenerate failed');
       toast.success(`Numbers regenerated for ${draw.month}`);
-      await loadDraws();
+      await onRefresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Regenerate failed');
     } finally {
@@ -153,7 +142,7 @@ export function DrawManager() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'Update failed');
       toast.success(`Draw switched to ${nextType}`);
-      await loadDraws();
+      await onRefresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Update failed');
     } finally {
@@ -161,19 +150,22 @@ export function DrawManager() {
     }
   }
 
-  async function handleDeleteDraw(draw: Draw) {
-    if (!confirm(`Delete draft draw for ${draw.month}?`)) return;
-    setBusyDrawId(draw.id);
+  async function confirmDeleteDraw() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setBusyDrawId(deleteTarget.id);
     try {
-      const response = await fetch(`/api/draws/${draw.id}`, { method: 'DELETE' });
+      const response = await fetch(`/api/draws/${deleteTarget.id}`, { method: 'DELETE' });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'Delete failed');
-      toast.success(`Draw ${draw.month} deleted`);
-      await loadDraws();
+      toast.success(`Draw ${deleteTarget.month} deleted`);
+      setDeleteTarget(null);
+      await onRefresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Delete failed');
     } finally {
       setBusyDrawId(null);
+      setDeleting(false);
     }
   }
 
@@ -189,7 +181,7 @@ export function DrawManager() {
       toast.success(`Draw ${publishTarget.month} published`);
       setPublishTarget(null);
       setPublishPreview(null);
-      await loadDraws();
+      await onRefresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Publish failed');
     } finally {
@@ -298,7 +290,7 @@ export function DrawManager() {
                     onPublish={openPublishDialog}
                     onRegenerate={handleRegenerate}
                     onToggleType={handleToggleDrawType}
-                    onDelete={handleDeleteDraw}
+                    onDelete={setDeleteTarget}
                     onView={setViewDraw}
                     className="mt-4 flex flex-wrap gap-2"
                   />
@@ -341,7 +333,7 @@ export function DrawManager() {
                           onPublish={openPublishDialog}
                           onRegenerate={handleRegenerate}
                           onToggleType={handleToggleDrawType}
-                          onDelete={handleDeleteDraw}
+                          onDelete={setDeleteTarget}
                           onView={setViewDraw}
                           className="flex justify-end gap-2"
                         />
@@ -437,6 +429,17 @@ export function DrawManager() {
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete draw?"
+        description={`The draft draw for ${deleteTarget?.month} will be permanently deleted. This cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleting}
+        onConfirm={confirmDeleteDraw}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

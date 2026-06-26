@@ -17,11 +17,13 @@ const STATUS_COLORS: Record<DrawStatus, string> = {
 
 export function DrawAdminPanel() {
   const [draws, setDraws] = useState<DrawWithMeta[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentRollover, setCurrentRollover] = useState(0);
   const [creatingNext, setCreatingNext] = useState(false);
   const year = new Date().getFullYear();
 
-  const loadMeta = useCallback(async () => {
+  const loadDraws = useCallback(async () => {
+    setLoading(true);
     try {
       const [drawsRes, statsRes] = await Promise.all([
         fetch('/api/draws'),
@@ -30,16 +32,22 @@ export function DrawAdminPanel() {
       const drawsData = await drawsRes.json();
       const statsData = await statsRes.json();
 
-      if (drawsRes.ok) setDraws(drawsData.draws ?? []);
+      if (!drawsRes.ok) {
+        throw new Error(drawsData.error ?? 'Failed to load draws');
+      }
+
+      setDraws(drawsData.draws ?? []);
       if (statsRes.ok) setCurrentRollover(statsData.current_rollover ?? 0);
-    } catch {
-      /* DrawManager handles its own errors */
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load draws');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadMeta();
-  }, [loadMeta]);
+    loadDraws();
+  }, [loadDraws]);
 
   const drawByMonth = new Map(draws.map((draw) => [draw.month, draw]));
   const months = Array.from({ length: 12 }, (_, index) => {
@@ -64,7 +72,7 @@ export function DrawAdminPanel() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'Failed to create draw');
       toast.success(`Draw created for ${nextMonth}`);
-      await loadMeta();
+      await loadDraws();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to create draw');
     } finally {
@@ -134,7 +142,7 @@ export function DrawAdminPanel() {
         </div>
       </section>
 
-      <DrawManager />
+      <DrawManager draws={draws} loading={loading} onRefresh={loadDraws} />
     </div>
   );
 }
