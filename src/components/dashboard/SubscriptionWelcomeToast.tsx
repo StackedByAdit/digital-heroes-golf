@@ -1,22 +1,45 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+
+const WELCOME_TOAST_ID = 'subscription-welcome';
+const WELCOME_SESSION_KEY = 'dhg-subscription-welcome-shown';
+
+function stripSubscribedParam() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has('subscribed')) return;
+  url.searchParams.delete('subscribed');
+  window.history.replaceState(
+    window.history.state,
+    '',
+    `${url.pathname}${url.search}${url.hash}`,
+  );
+}
 
 export function SubscriptionWelcomeToast() {
   const searchParams = useSearchParams();
-  const router = useRouter();
+  const subscribed = searchParams.get('subscribed');
+  const handledRef = useRef(false);
 
   useEffect(() => {
-    if (searchParams.get('subscribed') !== '1') return;
+    if (subscribed !== '1') return;
 
-    toast.success('Subscription active — welcome to Digital Heroes Golf!');
+    stripSubscribedParam();
 
-    const url = new URL(window.location.href);
-    url.searchParams.delete('subscribed');
-    router.replace(url.pathname + url.search, { scroll: false });
-  }, [router, searchParams]);
+    if (handledRef.current) return;
+    handledRef.current = true;
+
+    if (sessionStorage.getItem(WELCOME_SESSION_KEY) === '1') {
+      return;
+    }
+
+    sessionStorage.setItem(WELCOME_SESSION_KEY, '1');
+    toast.success('Subscription active — welcome to Digital Heroes Golf!', {
+      id: WELCOME_TOAST_ID,
+    });
+  }, [subscribed]);
 
   return null;
 }

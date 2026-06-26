@@ -22,6 +22,15 @@ import type { Charity, SubscriptionPlan } from '@/types';
 
 type Step = 1 | 2 | 3;
 
+const CHECKOUT_ERROR_MESSAGES: Record<string, string> = {
+  session_mismatch: 'Checkout session did not match your account. Please try again.',
+  payment_incomplete: 'Payment was not completed. Please try checkout again.',
+  profile_update_failed:
+    'Payment went through but activation failed. Try checkout again or sign in — your subscription may already be active.',
+  session_invalid: 'Checkout session could not be verified. Please try again.',
+  missing_session: 'Missing checkout session. Please start checkout again.',
+};
+
 export default function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -90,7 +99,15 @@ export default function SignupForm() {
           .maybeSingle();
 
         const stepParam = searchParams.get('step');
-        if (stepParam === '3' && profile?.charity_id) setStep(3);
+        const checkoutError = searchParams.get('error');
+
+        if (checkoutError && stepParam === '3') {
+          setStep(3);
+          setError(
+            CHECKOUT_ERROR_MESSAGES[checkoutError] ??
+              'Something went wrong after checkout. Please try again.',
+          );
+        } else if (stepParam === '3' && profile?.charity_id) setStep(3);
         else if (stepParam === '3' || stepParam === '2') setStep(2);
       }
     }

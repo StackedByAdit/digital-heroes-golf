@@ -1,11 +1,16 @@
 import { createAdminClient } from '@/lib/supabase/server';
-import type { SubscriptionPlan, SubscriptionStatus } from '@/types';
+import {
+  normalizeCharityId,
+  normalizeCharityPercentage,
+  updateProfileSubscriptionFields,
+} from '@/lib/stripe/profile-subscription-update';
 import {
   planFromMetadata,
   planFromStripePrice,
   resolveProfileSubscriptionStatus,
   subscriptionPeriodEndIso,
 } from '@/lib/stripe/subscription-sync';
+import type { SubscriptionPlan, SubscriptionStatus } from '@/types';
 import type Stripe from 'stripe';
 import {
   formatRetryDateFromInvoice,
@@ -95,39 +100,31 @@ export async function syncProfileFromSubscription(
     overrides?.status ?? resolveProfileSubscriptionStatus(subscription);
 
   const supabase = createAdminClient();
-  const update: Record<string, unknown> = {
-    subscription_status: status,
-    stripe_subscription_id: subscription.id,
-    stripe_customer_id: customerId,
-    subscription_ends_at: subscriptionPeriodEndIso(subscription),
-  };
+  const charityId =
+    normalizeCharityId(overrides?.charityId) ??
+    normalizeCharityId(subscription.metadata.charityId);
+  const charityPercentage =
+    overrides?.charityPercentage ??
+    normalizeCharityPercentage(subscription.metadata.charityPercentage);
 
-  if (plan) {
-    update.subscription_plan = plan;
-  }
+  const updateResult = await updateProfileSubscriptionFields(
+    supabase,
+    profile.id,
+    {
+      subscription_status: status,
+      subscription_plan: plan,
+      stripe_subscription_id: subscription.id,
+      stripe_customer_id: customerId,
+      subscription_ends_at: subscriptionPeriodEndIso(subscription),
+      ...(charityId ? { charity_id: charityId } : {}),
+      ...(charityPercentage !== undefined
+        ? { charity_percentage: charityPercentage }
+        : {}),
+    },
+  );
 
-  if (overrides?.charityId) {
-    update.charity_id = overrides.charityId;
-  } else if (subscription.metadata.charityId) {
-    update.charity_id = subscription.metadata.charityId;
-  }
-
-  if (overrides?.charityPercentage !== undefined) {
-    update.charity_percentage = overrides.charityPercentage;
-  } else if (subscription.metadata.charityPercentage) {
-    const parsed = Number(subscription.metadata.charityPercentage);
-    if (!Number.isNaN(parsed)) {
-      update.charity_percentage = parsed;
-    }
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update(update)
-    .eq('id', profile.id);
-
-  if (error) {
-    throw new Error(`Failed to sync profile: ${error.message}`);
+  if (!updateResult.ok) {
+    throw new Error(`Failed to sync profile: ${updateResult.error}`);
   }
 }
 
@@ -145,23 +142,18 @@ export async function updateProfileSubscriptionStatus(
   }
 
   const supabase = createAdminClient();
-  const update: Record<string, unknown> = { subscription_status: status };
+  const updateResult = await updateProfileSubscriptionFields(
+    supabase,
+    profile.id,
+    {
+      subscription_status: status,
+      stripe_subscription_id: subscriptionId ?? null,
+      subscription_ends_at: subscriptionEndsAt ?? null,
+    },
+  );
 
-  if (subscriptionId !== undefined) {
-    update.stripe_subscription_id = subscriptionId;
-  }
-
-  if (subscriptionEndsAt !== undefined) {
-    update.subscription_ends_at = subscriptionEndsAt;
-  }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update(update)
-    .eq('id', profile.id);
-
-  if (error) {
-    throw new Error(`Failed to update subscription status: ${error.message}`);
+  if (!updateResult.ok) {
+    throw new Error(`Failed to update subscription status: ${updateResult.error}`);
   }
 }
 

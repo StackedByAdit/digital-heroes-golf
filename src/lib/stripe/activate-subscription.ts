@@ -1,6 +1,12 @@
 import { createAdminClient } from '@/lib/supabase/server';
 import { stripe } from '@/lib/stripe/server';
 import {
+  normalizeCharityId,
+  normalizeCharityPercentage,
+  profileHasActiveSubscription,
+  updateProfileSubscriptionFields,
+} from '@/lib/stripe/profile-subscription-update';
+import {
   planFromMetadata,
   planFromStripePrice,
   subscriptionPeriodEndIso,
@@ -10,7 +16,15 @@ import type Stripe from 'stripe';
 
 export type ActivateCheckoutResult =
   | { ok: true; userId: string; plan: SubscriptionPlan | null }
-  | { ok: false; reason: 'missing_session' | 'session_mismatch' | 'payment_incomplete' | 'profile_update_failed' | 'session_invalid' };
+  | {
+      ok: false;
+      reason:
+        | 'missing_session'
+        | 'session_mismatch'
+        | 'payment_incomplete'
+        | 'profile_update_failed'
+        | 'session_invalid';
+    };
 
 function isCheckoutComplete(session: Stripe.Checkout.Session): boolean {
   if (session.status === 'complete') return true;
@@ -23,9 +37,24 @@ function isCheckoutComplete(session: Stripe.Checkout.Session): boolean {
 
 export async function activateSubscriptionFromCheckoutSession(
   sessionId: string,
-  userId: string
+  userId: string,
 ): Promise<ActivateCheckoutResult> {
   try {
+    if (await profileHasActiveSubscription(userId)) {
+      const admin = createAdminClient();
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('subscription_plan')
+        .eq('id', userId)
+        .maybeSingle();
+
+      return {
+        ok: true,
+        userId,
+        plan: (profile?.subscription_plan as SubscriptionPlan | null) ?? null,
+      };
+    }
+
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ['subscription'],
     });
@@ -51,52 +80,52 @@ export async function activateSubscriptionFromCheckoutSession(
       planFromStripePrice(priceId) ??
       null;
 
-    const charityId = session.metadata?.charityId ?? null;
-    const charityPercentageRaw = session.metadata?.charityPercentage;
-    const charityPercentage = charityPercentageRaw
-      ? Number(charityPercentageRaw)
-      : undefined;
-
     const customerId =
       typeof session.customer === 'string'
         ? session.customer
         : session.customer?.id ?? null;
 
     const admin = createAdminClient();
-    const update: Record<string, unknown> = {
+    const charityId = normalizeCharityId(session.metadata?.charityId);
+    const charityPercentage = normalizeCharityPercentage(
+      session.metadata?.charityPercentage,
+    );
+
+    const updateResult = await updateProfileSubscriptionFields(admin, userId, {
       subscription_status: 'active',
       subscription_plan: plan,
       stripe_subscription_id: subscriptionId,
       stripe_customer_id: customerId,
-      charity_id: charityId,
-      subscription_ends_at: subscription ? subscriptionPeriodEndIso(subscription) : null,
-    };
+      subscription_ends_at: subscription
+        ? subscriptionPeriodEndIso(subscription)
+        : null,
+      ...(charityId ? { charity_id: charityId } : {}),
+      ...(charityPercentage !== undefined
+        ? { charity_percentage: charityPercentage }
+        : {}),
+    });
 
-    if (
-      charityPercentage !== undefined &&
-      !Number.isNaN(charityPercentage) &&
-      charityPercentage >= 10 &&
-      charityPercentage <= 100
-    ) {
-      update.charity_percentage = charityPercentage;
-    }
-
-    const { error } = await admin.from('profiles').update(update).eq('id', userId);
-
-    if (error) {
-      console.error('[activate subscription]', error);
+    if (!updateResult.ok) {
+      if (await profileHasActiveSubscription(userId)) {
+        return { ok: true, userId, plan };
+      }
       return { ok: false, reason: 'profile_update_failed' };
     }
 
     return { ok: true, userId, plan };
   } catch (error) {
     console.error('[activate subscription]', error);
+
+    if (await profileHasActiveSubscription(userId)) {
+      return { ok: true, userId, plan: null };
+    }
+
     return { ok: false, reason: 'session_invalid' };
   }
 }
 
 export async function activateSubscriptionFromCheckoutSessionId(
-  sessionId: string
+  sessionId: string,
 ): Promise<ActivateCheckoutResult> {
   const session = await stripe.checkout.sessions.retrieve(sessionId, {
     expand: ['subscription'],

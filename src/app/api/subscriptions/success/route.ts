@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { activateSubscriptionFromCheckoutSession } from '@/lib/stripe/activate-subscription';
+import { profileHasActiveSubscription } from '@/lib/stripe/profile-subscription-update';
 import { getAppUrl } from '@/lib/stripe/server';
 
 const ERROR_REDIRECTS: Record<string, string> = {
@@ -10,6 +11,12 @@ const ERROR_REDIRECTS: Record<string, string> = {
   profile_update_failed: 'profile_update_failed',
   session_invalid: 'session_invalid',
 };
+
+function dashboardSuccessUrl(appUrl: string) {
+  const dashboardUrl = new URL('/dashboard', appUrl);
+  dashboardUrl.searchParams.set('subscribed', '1');
+  return dashboardUrl.toString();
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -28,18 +35,24 @@ export async function GET(request: Request) {
   if (!user) {
     const loginTarget = `/api/subscriptions/success?session_id=${encodeURIComponent(sessionId)}`;
     return NextResponse.redirect(
-      `${appUrl}/login?redirectTo=${encodeURIComponent(loginTarget)}`
+      `${appUrl}/login?redirectTo=${encodeURIComponent(loginTarget)}`,
     );
+  }
+
+  if (await profileHasActiveSubscription(user.id)) {
+    return NextResponse.redirect(dashboardSuccessUrl(appUrl));
   }
 
   const result = await activateSubscriptionFromCheckoutSession(sessionId, user.id);
 
   if (!result.ok) {
+    if (await profileHasActiveSubscription(user.id)) {
+      return NextResponse.redirect(dashboardSuccessUrl(appUrl));
+    }
+
     const errorCode = ERROR_REDIRECTS[result.reason] ?? 'session_invalid';
-    return NextResponse.redirect(`${appUrl}/pricing?error=${errorCode}`);
+    return NextResponse.redirect(`${appUrl}/signup?step=3&error=${errorCode}`);
   }
 
-  const dashboardUrl = new URL('/dashboard', appUrl);
-  dashboardUrl.searchParams.set('subscribed', '1');
-  return NextResponse.redirect(dashboardUrl.toString());
+  return NextResponse.redirect(dashboardSuccessUrl(appUrl));
 }
