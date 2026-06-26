@@ -5,7 +5,6 @@ import {
   BarChart3,
   Award,
   Gift,
-  Home,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -57,23 +56,13 @@ export function AdminShell({ adminName, children }: AdminShellProps) {
         )}
       >
         <PremiumSidebar
-          brandHref="/admin"
+          brandHref="/"
           sections={NAV_SECTIONS}
           footer={{
             name: adminName,
             badge: 'Administrator',
             initials,
           }}
-          footerExtra={
-            <Link
-              href="/dashboard"
-              onClick={() => setMobileOpen(false)}
-              className="btn-interactive flex items-center gap-3 rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white/80 transition hover:border-white/25 hover:bg-white/10 hover:text-white"
-            >
-              <Home className="h-4 w-4" strokeWidth={1.5} />
-              Member Dashboard
-            </Link>
-          }
           onNavigate={() => setMobileOpen(false)}
         />
       </div>
@@ -107,13 +96,6 @@ export function AdminShell({ adminName, children }: AdminShellProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard"
-              className="btn-interactive inline-flex items-center gap-1.5 rounded-lg border border-brand-green/15 bg-white/60 px-2.5 py-1.5 text-sm font-medium text-brand-green hover:bg-white sm:px-3"
-            >
-              <Home className="h-4 w-4" />
-              <span className="hidden sm:inline">Member Dashboard</span>
-            </Link>
             <form action="/api/auth/signout" method="post">
               <button
                 type="submit"
