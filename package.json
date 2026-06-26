@@ -12,7 +12,8 @@
     "test:admin": "tsx scripts/test-admin-api.ts",
     "db:setup": "tsx scripts/setup-database.ts",
     "stripe:setup": "tsx scripts/setup-stripe.ts",
-    "db:seed-users": "tsx scripts/seed-test-users.ts"
+    "db:seed-users": "tsx scripts/seed-test-users.ts",
+    "test:login-accounts": "tsx scripts/test-login-accounts.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

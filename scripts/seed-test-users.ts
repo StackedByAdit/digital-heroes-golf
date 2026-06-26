@@ -16,6 +16,26 @@ type TestUser = {
 
 const TEST_USERS: TestUser[] = [
   {
+    email: 'admin@digitalheroes.golf',
+    password: 'ChangeMe123!',
+    full_name: 'Admin User',
+    role: 'admin',
+    subscription_status: 'active',
+    subscription_plan: 'yearly',
+    charity_id: 'a0000001-0000-4000-8000-000000000001',
+    charity_percentage: 25,
+  },
+  {
+    email: 'subscriber@digitalheroes.golf',
+    password: 'ChangeMe123!',
+    full_name: 'Subscribed User',
+    role: 'subscriber',
+    subscription_status: 'active',
+    subscription_plan: 'monthly',
+    charity_id: 'a0000002-0000-4000-8000-000000000002',
+    charity_percentage: 25,
+  },
+  {
     email: 'admin@digitalheroes.co.in',
     password: 'Admin2025!',
     full_name: 'Recruiter Admin',
@@ -98,11 +118,11 @@ async function main() {
     }
 
     console.log(
-      `Ready: ${user.email} (${user.role}, subscription=${user.subscription_status})`
+      `Ready: ${user.email} (${user.role}, subscription=${user.subscription_status})`,
     );
   }
 
-  console.log('\nRecruiter test credentials:');
+  console.log('\nTest credentials:');
   for (const user of TEST_USERS) {
     console.log(`${user.email} / ${user.password}`);
   }
