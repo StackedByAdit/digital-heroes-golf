@@ -11,6 +11,7 @@
 
 -- Users
 -- 10000001 = admin@digitalheroes.golf
+-- 50000005 = subscriber@digitalheroes.golf
 -- 20000002 = alice@example.com
 -- 30000003 = bob@example.com
 -- 40000004 = carol@example.com
@@ -134,6 +135,19 @@ INSERT INTO auth.users (
   ),
   (
     '00000000-0000-0000-0000-000000000000',
+    '50000005-0000-4000-8000-000000000005',
+    'authenticated',
+    'authenticated',
+    'subscriber@digitalheroes.golf',
+    crypt('ChangeMe123!', gen_salt('bf')),
+    now(),
+    '{"provider":"email","providers":["email"]}',
+    '{"full_name":"Subscribed User"}',
+    now(),
+    now()
+  ),
+  (
+    '00000000-0000-0000-0000-000000000000',
     '20000002-0000-4000-8000-000000000002',
     'authenticated',
     'authenticated',
@@ -193,6 +207,16 @@ INSERT INTO auth.identities (
     now()
   ),
   (
+    '50000005-0000-4000-8000-000000000005',
+    '50000005-0000-4000-8000-000000000005',
+    jsonb_build_object('sub', '50000005-0000-4000-8000-000000000005', 'email', 'subscriber@digitalheroes.golf'),
+    'email',
+    '50000005-0000-4000-8000-000000000005',
+    now(),
+    now(),
+    now()
+  ),
+  (
     '20000002-0000-4000-8000-000000000002',
     '20000002-0000-4000-8000-000000000002',
     jsonb_build_object('sub', '20000002-0000-4000-8000-000000000002', 'email', 'alice@example.com'),
@@ -231,6 +255,13 @@ UPDATE public.profiles SET
   charity_id = 'a0000001-0000-4000-8000-000000000001',
   charity_percentage = 25
 WHERE id = '10000001-0000-4000-8000-000000000001';
+
+UPDATE public.profiles SET
+  subscription_status = 'active',
+  subscription_plan = 'monthly',
+  charity_id = 'a0000002-0000-4000-8000-000000000002',
+  charity_percentage = 25
+WHERE id = '50000005-0000-4000-8000-000000000005';
 
 UPDATE public.profiles SET
   subscription_status = 'active',
