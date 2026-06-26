@@ -1,34 +1,43 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, LayoutDashboard } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { SignOutButton } from '@/components/auth/SignOutButton';
 import { useNavAuth } from '@/hooks/useNavAuth';
 
 type LandingAuthActionsProps = {
   initialAuthenticated?: boolean;
   initialHasDashboardAccess?: boolean;
+  initialUserName?: string | null;
+  initialIsAdmin?: boolean;
   variant?: 'hero' | 'footer';
 };
 
 export function LandingAuthActions({
   initialAuthenticated = false,
   initialHasDashboardAccess = false,
+  initialUserName = null,
+  initialIsAdmin = false,
   variant = 'hero',
 }: LandingAuthActionsProps) {
-  const { isAuthenticated, hasDashboardAccess } = useNavAuth(
+  const { isAuthenticated, hasDashboardAccess, isAdmin } = useNavAuth(
     initialAuthenticated,
-    initialHasDashboardAccess,
+    initialHasDashboardAccess || initialIsAdmin,
+    initialUserName,
+    initialIsAdmin,
   );
 
+  const showAdmin = isAdmin || initialIsAdmin;
+  const canUseDashboard = hasDashboardAccess || showAdmin;
+
   if (variant === 'footer') {
-    if (isAuthenticated && hasDashboardAccess) {
+    if (isAuthenticated && canUseDashboard) {
       return (
         <Link
-          href="/dashboard"
+          href="/charities"
           className="btn-interactive btn-hero-primary mt-8 px-8 py-3.5"
         >
-          Go to your dashboard
+          Browse charities
           <span className="btn-hero-icon">
             <ArrowRight className="h-4 w-4" />
           </span>
@@ -78,19 +87,12 @@ export function LandingAuthActions({
     );
   }
 
-  if (isAuthenticated && hasDashboardAccess) {
+  if (isAuthenticated && canUseDashboard) {
     return (
-      <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-        <Link href="/dashboard" className="btn-interactive btn-hero-primary">
-          <LayoutDashboard className="h-4 w-4" />
-          Open your dashboard
-          <span className="btn-hero-icon">
-            <ArrowRight className="h-4 w-4" />
-          </span>
-        </Link>
+      <div className="mt-10">
         <Link
           href="/charities"
-          className="btn-interactive rounded-full border border-white/30 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+          className="btn-interactive rounded-full border border-white/25 px-6 py-3 text-sm font-semibold text-white/90 transition hover:bg-white/10"
         >
           Browse charities
         </Link>

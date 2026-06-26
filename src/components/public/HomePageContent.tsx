@@ -6,6 +6,7 @@ import { ArrowUpRight, Heart, PenLine, Sparkles, Trophy } from 'lucide-react';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { LandingAuthActions } from '@/components/auth/LandingAuthActions';
+import { useNavAuth } from '@/hooks/useNavAuth';
 import { charityDisplayImage, excerpt } from '@/lib/charity/helpers';
 import { formatCurrency } from '@/lib/utils';
 import type { Charity } from '@/types';
@@ -16,6 +17,8 @@ type HomePageContentProps = {
   featuredCharity: Charity | null;
   initialAuthenticated?: boolean;
   initialHasDashboardAccess?: boolean;
+  initialUserName?: string | null;
+  initialIsAdmin?: boolean;
 };
 
 const STEPS = [
@@ -62,7 +65,18 @@ export function HomePageContent({
   featuredCharity,
   initialAuthenticated = false,
   initialHasDashboardAccess = false,
+  initialUserName = null,
+  initialIsAdmin = false,
 }: HomePageContentProps) {
+  const { isAuthenticated, userName } = useNavAuth(
+    initialAuthenticated,
+    initialHasDashboardAccess || initialIsAdmin,
+    initialUserName,
+    initialIsAdmin,
+  );
+
+  const displayName = userName ?? initialUserName ?? 'there';
+
   return (
     <>
       <section className="relative -mt-[4.5rem] flex min-h-screen items-center justify-center overflow-hidden">
@@ -78,24 +92,38 @@ export function HomePageContent({
 
         <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center px-4 pb-32 pt-24 text-center sm:pb-28 sm:pt-28 md:pt-32">
           <ScrollReveal className="flex flex-col items-center">
-            <p className="glass-pill mb-6 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/95">
-              <AnimatedCounter value={stats.charity_raised_this_month} prefix="£" />
-              <span>raised for charity this month</span>
-            </p>
+            {!isAuthenticated && (
+              <p className="glass-pill mb-6 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white/95">
+                <AnimatedCounter value={stats.charity_raised_this_month} prefix="£" />
+                <span>raised for charity this month</span>
+              </p>
+            )}
 
-            <h1 className="font-display text-[2.85rem] font-normal leading-[1.08] tracking-tight text-white sm:text-6xl md:text-[4.5rem] lg:text-[5rem]">
-              Good golf.
-              <br />
-              <span className="italic text-[#aebfaa]">Greater impact.</span>
-            </h1>
+            {isAuthenticated ? (
+              <h1 className="font-display text-[2.85rem] font-normal leading-[1.08] tracking-tight text-white sm:text-6xl md:text-[4.5rem] lg:text-[5rem]">
+                Welcome back,
+                <br />
+                <span className="italic text-[#aebfaa]">{displayName}</span>
+              </h1>
+            ) : (
+              <>
+                <h1 className="font-display text-[2.85rem] font-normal leading-[1.08] tracking-tight text-white sm:text-6xl md:text-[4.5rem] lg:text-[5rem]">
+                  Good golf.
+                  <br />
+                  <span className="italic text-[#aebfaa]">Greater impact.</span>
+                </h1>
 
-            <p className="mt-8 max-w-2xl text-base font-normal leading-relaxed text-white/90 sm:text-lg">
-              Compete every month. Support charities. Win together.
-            </p>
+                <p className="mt-8 max-w-2xl text-base font-normal leading-relaxed text-white/90 sm:text-lg">
+                  Compete every month. Support charities. Win together.
+                </p>
+              </>
+            )}
 
             <LandingAuthActions
               initialAuthenticated={initialAuthenticated}
               initialHasDashboardAccess={initialHasDashboardAccess}
+              initialUserName={initialUserName}
+              initialIsAdmin={initialIsAdmin}
               variant="hero"
             />
           </ScrollReveal>
@@ -286,6 +314,8 @@ export function HomePageContent({
           <LandingAuthActions
             initialAuthenticated={initialAuthenticated}
             initialHasDashboardAccess={initialHasDashboardAccess}
+            initialUserName={initialUserName}
+            initialIsAdmin={initialIsAdmin}
             variant="footer"
           />
           <p className="mt-4 text-xs text-white/65">

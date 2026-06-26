@@ -1,6 +1,11 @@
 import { Footer } from '@/components/layout/Footer';
 import { Navbar } from '@/components/layout/Navbar';
-import { hasDashboardAccess } from '@/lib/auth/nav-access';
+import {
+  dashboardAccessFromNavProfile,
+  isAdminProfile,
+  NAV_PROFILE_SELECT,
+  type NavProfileRow,
+} from '@/lib/auth/nav-profile';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function PublicLayout({
@@ -13,23 +18,25 @@ export default async function PublicLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  let hasDashboard = false;
+  let profile: NavProfileRow | null = null;
 
   if (user) {
-    const { data: profile } = await supabase
+    const { data } = await supabase
       .from('profiles')
-      .select('role, subscription_status, subscription_ends_at')
+      .select(NAV_PROFILE_SELECT)
       .eq('id', user.id)
       .maybeSingle();
 
-    hasDashboard = hasDashboardAccess(profile);
+    profile = data as NavProfileRow | null;
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-brand-cream">
       <Navbar
         initialAuthenticated={Boolean(user)}
-        initialHasDashboardAccess={hasDashboard}
+        initialHasDashboardAccess={dashboardAccessFromNavProfile(profile)}
+        initialIsAdmin={isAdminProfile(profile)}
+        initialUserName={profile?.full_name ?? null}
       />
       <div className="flex-1 pt-[4.5rem]">{children}</div>
       <Footer />
