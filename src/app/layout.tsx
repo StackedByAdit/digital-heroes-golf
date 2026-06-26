@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Caveat, Inter, Playfair_Display } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { rootMetadata } from '@/lib/seo/metadata';
@@ -24,6 +24,14 @@ const caveat = Caveat({
 });
 
 export const metadata: Metadata = rootMetadata;
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#1a3c2e',
+  colorScheme: 'light',
+};
 
 export default function RootLayout({
   children,

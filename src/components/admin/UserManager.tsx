@@ -220,7 +220,7 @@ export function UserManager() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <input
           type="search"
           placeholder="Search name or email…"
@@ -229,41 +229,88 @@ export function UserManager() {
             setSearch(event.target.value);
             setPage(1);
           }}
-          className="min-w-[220px] flex-1 rounded-lg border px-3 py-2 text-sm"
+          className="w-full rounded-lg border px-3 py-2 text-sm sm:min-w-[220px] sm:flex-1"
         />
-        <select
-          value={statusFilter}
-          onChange={(event) => {
-            setStatusFilter(event.target.value);
-            setPage(1);
-          }}
-          className="rounded-lg border px-3 py-2 text-sm"
-        >
-          <option value="">All statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="past_due">Past due</option>
-        </select>
-        <select
-          value={planFilter}
-          onChange={(event) => {
-            setPlanFilter(event.target.value);
-            setPage(1);
-          }}
-          className="rounded-lg border px-3 py-2 text-sm"
-        >
-          <option value="">All plans</option>
-          <option value="monthly">Monthly</option>
-          <option value="yearly">Yearly</option>
-        </select>
+        <div className="flex gap-3">
+          <select
+            value={statusFilter}
+            onChange={(event) => {
+              setStatusFilter(event.target.value);
+              setPage(1);
+            }}
+            className="flex-1 rounded-lg border px-3 py-2 text-sm sm:flex-none"
+          >
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="past_due">Past due</option>
+          </select>
+          <select
+            value={planFilter}
+            onChange={(event) => {
+              setPlanFilter(event.target.value);
+              setPage(1);
+            }}
+            className="flex-1 rounded-lg border px-3 py-2 text-sm sm:flex-none"
+          >
+            <option value="">All plans</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         {loading ? (
           <p className="px-6 py-10 text-sm text-gray-500">Loading users…</p>
+        ) : users.length === 0 ? (
+          <p className="px-6 py-10 text-sm text-gray-500">No users found.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="divide-y divide-gray-100 md:hidden">
+            {users.map((user) => (
+              <article key={user.id} className="dashboard-card space-y-3 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-gray-900">{user.full_name}</p>
+                    <p className="truncate text-xs text-gray-500">{user.email}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openUser(user.id)}
+                    className="btn-interactive shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
+                  >
+                    View
+                  </button>
+                </div>
+                <dl className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <dt className="text-gray-500">Plan</dt>
+                    <dd className="capitalize text-gray-900">{user.subscription_plan ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Status</dt>
+                    <dd className="capitalize text-gray-900">{user.subscription_status}</dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-gray-500">Charity</dt>
+                    <dd className="truncate text-gray-900">{user.charity_name ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Scores</dt>
+                    <dd className="text-gray-900">{user.score_count}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Joined</dt>
+                    <dd className="text-gray-900">{formatDate(user.created_at.slice(0, 10))}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
@@ -301,6 +348,7 @@ export function UserManager() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
