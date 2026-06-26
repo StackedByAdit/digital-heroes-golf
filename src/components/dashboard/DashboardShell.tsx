@@ -95,7 +95,7 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
     <div className="min-h-screen bg-brand-cream">
       <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:block">
         <PremiumSidebar
-          brandHref="/dashboard"
+          brandHref="/"
           sections={NAV_SECTIONS}
           footer={{
             name: profile.full_name,
@@ -156,15 +156,8 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
 
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-brand-green/10 bg-brand-cream/95 px-4 backdrop-blur-sm sm:h-16 lg:px-8">
           <div className="min-w-0">
-            <Link
-              href="/dashboard"
-              className="font-display text-lg font-semibold text-brand-green lg:hidden"
-            >
-              Digital Heroes
-            </Link>
-            <p className="hidden truncate text-sm text-gray-500 lg:block">
-              Welcome back,{' '}
-              <span className="font-medium text-gray-900">{profile.full_name}</span>
+            <p className="truncate text-sm font-medium text-gray-900">
+              {profile.full_name}&apos;s dashboard
             </p>
           </div>
 
