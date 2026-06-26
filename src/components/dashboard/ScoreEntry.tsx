@@ -22,6 +22,17 @@ function todayString() {
   return format(new Date(), 'yyyy-MM-dd');
 }
 
+function formatValidationError(data: {
+  error?: string;
+  details?: { fieldErrors?: Record<string, string[]> };
+}): string | null {
+  const fieldErrors = data.details?.fieldErrors;
+  if (!fieldErrors) return null;
+
+  const messages = Object.values(fieldErrors).flat().filter(Boolean);
+  return messages[0] ?? null;
+}
+
 function getOldestScore(scores: GolfScore[]): GolfScore | null {
   if (scores.length === 0) return null;
   return [...scores].sort(
@@ -135,8 +146,10 @@ export function ScoreEntry({ initialScores }: ScoreEntryProps) {
 
       if (!response.ok) {
         setScores(previousScores);
-        setFormError(data.error ?? 'Failed to save score');
-        toast.error(data.error ?? 'Failed to save score');
+        const message =
+          formatValidationError(data) ?? data.error ?? 'Failed to save score';
+        setFormError(message);
+        toast.error(message);
         return;
       }
 
