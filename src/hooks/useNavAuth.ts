@@ -2,20 +2,31 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { hasPlatformAccess } from '@/lib/subscription/access';
+import {
+  dashboardAccessFromNavProfile,
+  isAdminProfile,
+  NAV_PROFILE_SELECT,
+  type NavProfileRow,
+} from '@/lib/auth/nav-profile';
 
 type NavAuthState = {
   isAuthenticated: boolean;
   hasDashboardAccess: boolean;
+  userName: string | null;
+  isAdmin: boolean;
 };
 
 export function useNavAuth(
   initialAuthenticated = false,
   initialHasDashboardAccess = false,
+  initialUserName: string | null = null,
+  initialIsAdmin = false,
 ): NavAuthState {
   const [state, setState] = useState<NavAuthState>({
     isAuthenticated: initialAuthenticated,
     hasDashboardAccess: initialHasDashboardAccess,
+    userName: initialUserName,
+    isAdmin: initialIsAdmin,
   });
 
   useEffect(() => {
@@ -30,26 +41,39 @@ export function useNavAuth(
       if (!mounted) return;
 
       if (!user) {
-        setState({ isAuthenticated: false, hasDashboardAccess: false });
+        setState({
+          isAuthenticated: false,
+          hasDashboardAccess: false,
+          userName: null,
+          isAdmin: false,
+        });
         return;
       }
 
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
-        .select('role, subscription_status, subscription_ends_at')
+        .select(NAV_PROFILE_SELECT)
         .eq('id', user.id)
         .maybeSingle();
 
       if (!mounted) return;
 
-      const hasDashboardAccess =
-        profile?.role === 'admin' ||
-        hasPlatformAccess(
-          profile?.subscription_status,
-          profile?.subscription_ends_at,
-        );
+      if (error || !profile) {
+        setState((prev) => ({
+          ...prev,
+          isAuthenticated: true,
+        }));
+        return;
+      }
 
-      setState({ isAuthenticated: true, hasDashboardAccess });
+      const navProfile = profile as NavProfileRow;
+
+      setState({
+        isAuthenticated: true,
+        hasDashboardAccess: dashboardAccessFromNavProfile(navProfile),
+        userName: navProfile.full_name ?? null,
+        isAdmin: isAdminProfile(navProfile),
+      });
     }
 
     syncAuth();
@@ -66,5 +90,8 @@ export function useNavAuth(
     };
   }, []);
 
-  return state;
+  return {
+    ...state,
+    hasDashboardAccess: state.hasDashboardAccess || state.isAdmin,
+  };
 }
