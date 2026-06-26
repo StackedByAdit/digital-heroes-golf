@@ -73,6 +73,10 @@ function needsSubscriptionGate(pathname: string): boolean {
   return false;
 }
 
+function isSubscriptionMarketingPath(pathname: string): boolean {
+  return pathname === '/pricing' || pathname === '/signup';
+}
+
 export async function middleware(request: NextRequest) {
   const { response: sessionResponse, user: sessionUser } = await updateSession(request);
   const { pathname } = request.nextUrl;
@@ -106,7 +110,12 @@ export async function middleware(request: NextRequest) {
   let subscriptionStatus: string | null = null;
   let subscriptionEndsAt: string | null = null;
 
-  if (user && (needsStrictAuth(pathname) || needsSubscriptionGate(pathname))) {
+  if (
+    user &&
+    (needsStrictAuth(pathname) ||
+      needsSubscriptionGate(pathname) ||
+      isSubscriptionMarketingPath(pathname))
+  ) {
     const supabase = createServerClient(
       getSupabaseUrl(),
       getSupabaseAnonKey(),
@@ -176,6 +185,17 @@ export async function middleware(request: NextRequest) {
         role
       );
     }
+  }
+
+  if (isSubscriptionMarketingPath(pathname) && user && canAccessDashboard) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = role === 'admin' ? '/admin' : '/dashboard';
+    redirectUrl.search = '';
+    return finalizeResponse(
+      sessionResponse,
+      NextResponse.redirect(redirectUrl),
+      role,
+    );
   }
 
   if (pathname === '/login' && user) {

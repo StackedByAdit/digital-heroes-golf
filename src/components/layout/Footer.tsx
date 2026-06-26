@@ -5,9 +5,9 @@ const FOOTER_LINKS = [
   { href: '/how-it-works', label: 'How It Works' },
   { href: '/charities', label: 'Charities' },
   { href: '/donate', label: 'Donate' },
-  { href: '/pricing', label: 'Pricing' },
+  { href: '/pricing', label: 'Pricing', hideWhenSubscribed: true },
   { href: '/login', label: 'Log in' },
-  { href: '/signup', label: 'Sign up' },
+  { href: '/signup', label: 'Sign up', hideWhenSubscribed: true },
 ];
 
 const SOCIAL_LINKS = [
@@ -16,7 +16,15 @@ const SOCIAL_LINKS = [
   { href: '#', label: 'X' },
 ];
 
-export function Footer() {
+type FooterProps = {
+  hideSubscriptionLinks?: boolean;
+};
+
+export function Footer({ hideSubscriptionLinks = false }: FooterProps) {
+  const footerLinks = hideSubscriptionLinks
+    ? FOOTER_LINKS.filter((link) => !link.hideWhenSubscribed)
+    : FOOTER_LINKS;
+
   return (
     <footer className="border-t border-brand-green/10 bg-brand-green text-brand-cream">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
@@ -44,7 +52,7 @@ export function Footer() {
               Explore
             </p>
             <ul className="mt-4 space-y-2">
-              {FOOTER_LINKS.map((link) => (
+              {footerLinks.map((link) => (
                 <li key={link.label}>
                   <Link
                     href={link.href}
