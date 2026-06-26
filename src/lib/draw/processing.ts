@@ -83,7 +83,7 @@ export async function fetchActiveSubscribersWithScores(): Promise<
   const { data: profiles, error: profilesError } = await admin
     .from('profiles')
     .select(
-      'id, email, full_name, subscription_status, subscription_ends_at, subscription_plan'
+      'id, email, full_name, subscription_status, subscription_plan'
     )
     .in('subscription_status', ['active', 'past_due', 'cancelled']);
 
@@ -94,12 +94,7 @@ export async function fetchActiveSubscribersWithScores(): Promise<
   const subscribers: SubscriberWithScores[] = [];
 
   for (const profile of profiles ?? []) {
-    if (
-      !hasPlatformAccess(
-        profile.subscription_status,
-        profile.subscription_ends_at
-      )
-    ) {
+    if (!hasPlatformAccess(profile.subscription_status)) {
       continue;
     }
 
