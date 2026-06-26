@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getAuthUser } from '@/lib/supabase/cached-auth';
 import { CharitySelector } from '@/components/dashboard/CharitySelector';
 import type { Charity, Profile } from '@/types';
 
@@ -28,11 +29,7 @@ async function getCharityData(userId: string) {
 }
 
 export default async function CharityPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getAuthUser();
   if (!user) redirect('/login');
 
   const { profile, charity } = await getCharityData(user.id);

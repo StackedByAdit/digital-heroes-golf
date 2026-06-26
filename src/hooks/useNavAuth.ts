@@ -76,11 +76,12 @@ export function useNavAuth(
       });
     }
 
-    syncAuth();
-
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'INITIAL_SESSION' && initialAuthenticated) {
+        return;
+      }
       syncAuth();
     });
 
@@ -88,7 +89,7 @@ export function useNavAuth(
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [initialAuthenticated]);
 
   return {
     ...state,

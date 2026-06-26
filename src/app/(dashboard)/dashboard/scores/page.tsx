@@ -1,14 +1,10 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
 import { getScores } from '@/lib/dashboard/data';
+import { getAuthUser } from '@/lib/supabase/cached-auth';
 import { ScoreEntry } from '@/components/dashboard/ScoreEntry';
 
 export default async function ScoresPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getAuthUser();
   if (!user) redirect('/login');
 
   const scores = await getScores(user.id);

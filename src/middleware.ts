@@ -106,7 +106,7 @@ export async function middleware(request: NextRequest) {
   let subscriptionStatus: string | null = null;
   let subscriptionEndsAt: string | null = null;
 
-  if (user) {
+  if (user && (needsStrictAuth(pathname) || needsSubscriptionGate(pathname))) {
     const supabase = createServerClient(
       getSupabaseUrl(),
       getSupabaseAnonKey(),
@@ -131,7 +131,7 @@ export async function middleware(request: NextRequest) {
     const navProfile = profile as NavProfileRow | null;
     role = navProfile?.role ?? null;
     subscriptionStatus = navProfile?.subscription_status ?? null;
-    subscriptionEndsAt = null;
+    subscriptionEndsAt = navProfile?.subscription_ends_at ?? null;
     requestHeaders.set('x-user-id', user.id);
     if (role) {
       requestHeaders.set('x-user-role', role);
@@ -142,6 +142,8 @@ export async function middleware(request: NextRequest) {
     if (subscriptionEndsAt) {
       requestHeaders.set('x-subscription-ends-at', subscriptionEndsAt);
     }
+  } else if (user) {
+    requestHeaders.set('x-user-id', user.id);
   }
 
   const loginUrl = request.nextUrl.clone();
@@ -156,7 +158,11 @@ export async function middleware(request: NextRequest) {
 
   const canAccessDashboard = dashboardAccessFromNavProfile(
     role || subscriptionStatus
-      ? { role, subscription_status: subscriptionStatus }
+      ? {
+          role,
+          subscription_status: subscriptionStatus,
+          subscription_ends_at: subscriptionEndsAt,
+        }
       : null,
   );
 

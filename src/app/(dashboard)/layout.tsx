@@ -1,25 +1,24 @@
 import { redirect } from 'next/navigation';
-import { Suspense } from 'react';
 import { NAV_PROFILE_SELECT, type NavProfileRow } from '@/lib/auth/nav-profile';
+import { getAuthUser } from '@/lib/supabase/cached-auth';
 import { createClient } from '@/lib/supabase/server';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
 import { SubscriptionWelcomeToast } from '@/components/dashboard/SubscriptionWelcomeToast';
 import type { Profile } from '@/types';
+import { Suspense } from 'react';
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
 
   if (!user) {
     redirect('/login?redirectTo=/dashboard');
   }
 
+  const supabase = await createClient();
   const { data: profile, error } = await supabase
     .from('profiles')
     .select(NAV_PROFILE_SELECT)
@@ -40,7 +39,7 @@ export default async function DashboardLayout({
     role: (navProfile.role ?? 'subscriber') as Profile['role'],
     subscription_status: (navProfile.subscription_status ??
       'inactive') as Profile['subscription_status'],
-    subscription_ends_at: null,
+    subscription_ends_at: navProfile.subscription_ends_at ?? null,
   };
 
   return (
