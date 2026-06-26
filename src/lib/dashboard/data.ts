@@ -1,4 +1,6 @@
 import { differenceInMonths } from 'date-fns';
+import { unstable_cache } from 'next/cache';
+import { cache } from 'react';
 import {
   calculatePrizePools,
   getNextMonthKey,
@@ -9,7 +11,7 @@ import { resolveRolloverForMonth } from '@/lib/draw/processing';
 import { calculateCharityContribution } from '@/lib/charity/helpers';
 import { createClient } from '@/lib/supabase/server';
 import { hasPlatformAccess } from '@/lib/subscription/access';
-import { countPlatformAccessSubscribers, fetchPlatformAccessProfiles } from '@/lib/subscription/subscribers';
+import { fetchPlatformAccessProfiles } from '@/lib/subscription/subscribers';
 import {
   getWinnerDisplayStatus,
   isWinningEntry,
@@ -63,10 +65,13 @@ export async function getProfile(userId: string): Promise<DashboardProfile | nul
 
   if (error || !data) return null;
 
-  const renewalDate = await getRenewalDate(data.stripe_subscription_id);
+  const profile = data as Profile;
+  const renewalDate =
+    profile.subscription_ends_at ??
+    (await getRenewalDate(profile.stripe_subscription_id));
 
   return {
-    ...(data as Profile),
+    ...profile,
     renewalDate,
   };
 }
@@ -100,14 +105,20 @@ export async function getScores(userId: string): Promise<GolfScore[]> {
 }
 
 export async function getCharityWithContribution(
-  userId: string
+  userId: string,
+  existingProfile?: Profile | null,
 ): Promise<CharityWithContribution> {
   const supabase = await createClient();
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
+  let profile = existingProfile;
+
+  if (!profile) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    profile = (data as Profile | null) ?? null;
+  }
 
   if (!profile) {
     return {
@@ -165,22 +176,23 @@ export async function getDrawHistory(userId: string): Promise<DrawWithMeta[]> {
     .eq('status', 'published')
     .order('month', { ascending: false });
 
-  if (error || !draws) return [];
+  if (error || !draws?.length) return [];
 
-  const enriched: DrawWithMeta[] = [];
+  const drawIds = (draws as Draw[]).map((draw) => draw.id);
+  const { data: entries } = await supabase
+    .from('draw_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .in('draw_id', drawIds);
 
-  for (const draw of draws as Draw[]) {
-    const { data: entry } = await supabase
-      .from('draw_entries')
-      .select('*')
-      .eq('draw_id', draw.id)
-      .eq('user_id', userId)
-      .maybeSingle();
+  const entryByDrawId = new Map(
+    ((entries ?? []) as DrawEntry[]).map((entry) => [entry.draw_id, entry]),
+  );
 
-    enriched.push({ ...draw, my_entry: entry });
-  }
-
-  return enriched;
+  return (draws as Draw[]).map((draw) => ({
+    ...draw,
+    my_entry: entryByDrawId.get(draw.id) ?? null,
+  }));
 }
 
 export async function getWinningsSummary(userId: string): Promise<WinningsSummary> {
@@ -188,7 +200,7 @@ export async function getWinningsSummary(userId: string): Promise<WinningsSummar
 
   const { data: entries, error } = await supabase
     .from('draw_entries')
-    .select('*')
+    .select('*, draws:draw_id (month)')
     .eq('user_id', userId)
     .not('match_type', 'is', null)
     .gt('prize_amount', 0)
@@ -203,15 +215,16 @@ export async function getWinningsSummary(userId: string): Promise<WinningsSummar
   let totalPaid = 0;
   let pendingCount = 0;
 
-  for (const entry of entries as DrawEntry[]) {
+  for (const row of entries) {
+    const raw = row as DrawEntry & {
+      draws: Pick<Draw, 'month'> | Pick<Draw, 'month'>[] | null;
+    };
+    const { draws: drawJoin, ...entry } = raw;
     if (!isWinningEntry(entry)) continue;
 
-    const { data: draw } = await supabase
-      .from('draws')
-      .select('month')
-      .eq('id', entry.draw_id)
-      .maybeSingle();
-
+    const drawMonthValue = Array.isArray(drawJoin)
+      ? drawJoin[0]?.month
+      : drawJoin?.month;
     const prize = Number(entry.prize_amount);
     totalWon += prize;
 
@@ -220,7 +233,7 @@ export async function getWinningsSummary(userId: string): Promise<WinningsSummar
 
     result.push({
       entry,
-      drawMonth: (draw as Pick<Draw, 'month'> | null)?.month ?? 'Unknown',
+      drawMonth: drawMonthValue ?? 'Unknown',
       displayStatus: getWinnerDisplayStatus(entry),
     });
   }
@@ -233,8 +246,15 @@ export async function getWinningsSummary(userId: string): Promise<WinningsSummar
   };
 }
 
+const getCachedPlatformProfiles = unstable_cache(
+  fetchPlatformAccessProfiles,
+  ['platform-access-profiles'],
+  { revalidate: 60 },
+);
+
 export async function getActiveSubscriberCount(): Promise<number> {
-  return countPlatformAccessSubscribers();
+  const profiles = await getCachedPlatformProfiles();
+  return profiles.length;
 }
 
 export async function getNextDrawInfo(): Promise<NextDrawInfo> {
@@ -253,9 +273,9 @@ export async function getNextDrawInfo(): Promise<NextDrawInfo> {
   const upcomingMonth =
     latestPublished?.month === currentMonth ? nextMonth : currentMonth;
 
-  const subscriberCount = await getActiveSubscriberCount();
+  const profiles = await getCachedPlatformProfiles();
+  const subscriberCount = profiles.length;
   const rolloverAmount = await resolveRolloverForMonth(upcomingMonth);
-  const profiles = await fetchPlatformAccessProfiles();
 
   const pools = calculatePrizePools({
     totalMonthlyPool: totalMonthlyPoolContribution(
@@ -283,10 +303,25 @@ export async function getNextDrawInfo(): Promise<NextDrawInfo> {
 
 export async function getPendingProofWinners(userId: string) {
   const winnings = await getWinningsSummary(userId);
-  return winnings.entries.filter(
-    ({ entry, displayStatus }) =>
-      entry.payment_status === 'pending' ||
-      displayStatus === 'rejected' ||
-      displayStatus === 'pending'
+  return winnings.entries.filter(({ displayStatus }) =>
+    displayStatus === 'pending' ||
+    displayStatus === 'under_review' ||
+    displayStatus === 'rejected',
   );
 }
+
+export const getDashboardOverview = cache(async (userId: string) => {
+  const profile = await getProfile(userId);
+  if (!profile) return null;
+
+  const [scores, charityData, drawHistory, winnings, nextDraw] =
+    await Promise.all([
+      getScores(userId),
+      getCharityWithContribution(userId, profile),
+      getDrawHistory(userId),
+      getWinningsSummary(userId),
+      getNextDrawInfo(),
+    ]);
+
+  return { profile, scores, charityData, drawHistory, winnings, nextDraw };
+});

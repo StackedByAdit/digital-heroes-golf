@@ -57,7 +57,6 @@ export function PremiumSidebar({
         src="/images/auth-golf-course.jpg"
         alt=""
         fill
-        priority
         className="object-cover object-[center_40%] scale-105"
         sizes="288px"
       />
@@ -96,6 +95,7 @@ export function PremiumSidebar({
                     <li key={item.href}>
                       <Link
                         href={item.href}
+                        prefetch
                         onClick={onNavigate}
                         data-active={active ? 'true' : 'false'}
                         className={cn(
