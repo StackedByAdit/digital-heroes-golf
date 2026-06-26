@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { CHARITY_CATEGORIES } from '@/lib/charity/categories';
 import { cn } from '@/lib/utils';
 import type { Charity, CharityCategory, CharityEvent } from '@/types';
+import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 
 type CharityRow = Charity & { event_count?: number };
 
@@ -28,6 +29,8 @@ export function CharityManager() {
     is_featured: false,
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<CharityRow | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
 
   const [eventForm, setEventForm] = useState({
     title: '',
@@ -110,7 +113,18 @@ export function CharityManager() {
         }
       );
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? 'Save failed');
+      if (!response.ok) {
+        const fieldErrors = data.details?.fieldErrors as
+          | Record<string, string[]>
+          | undefined;
+        if (fieldErrors) {
+          const messages = Object.entries(fieldErrors)
+            .map(([field, errors]) => `${field}: ${errors[0]}`)
+            .join(', ');
+          throw new Error(messages);
+        }
+        throw new Error(data.error ?? 'Save failed');
+      }
 
       const charityId = editing?.id ?? data.charity?.id;
       if (charityId && imageFile) {
@@ -153,18 +167,22 @@ export function CharityManager() {
     }
   }
 
-  async function deactivateCharity(charity: CharityRow) {
-    if (!confirm(`Deactivate ${charity.name}?`)) return;
+  async function confirmDeactivateCharity() {
+    if (!deactivateTarget) return;
+    setDeactivating(true);
     try {
-      const response = await fetch(`/api/charities/${charity.id}`, {
+      const response = await fetch(`/api/charities/${deactivateTarget.id}`, {
         method: 'DELETE',
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? 'Delete failed');
       toast.success('Charity deactivated');
+      setDeactivateTarget(null);
       await loadCharities();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Delete failed');
+    } finally {
+      setDeactivating(false);
     }
   }
 
@@ -310,7 +328,7 @@ export function CharityManager() {
                         {charity.is_active && (
                           <button
                             type="button"
-                            onClick={() => deactivateCharity(charity)}
+                            onClick={() => setDeactivateTarget(charity)}
                             className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -441,6 +459,17 @@ export function CharityManager() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={deactivateTarget !== null}
+        title="Deactivate charity?"
+        description={`"${deactivateTarget?.name}" will be hidden from subscribers. You can reactivate it at any time.`}
+        confirmLabel="Deactivate"
+        variant="danger"
+        loading={deactivating}
+        onConfirm={confirmDeactivateCharity}
+        onCancel={() => setDeactivateTarget(null)}
+      />
 
       <Dialog.Root
         open={eventsCharity !== null}

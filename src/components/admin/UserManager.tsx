@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { formatDate } from '@/lib/utils';
 import type { Charity, GolfScore, Profile } from '@/types';
 import type { AdminUserRow } from '@/app/api/admin/users/route';
+import { ConfirmDialog } from '@/components/admin/ConfirmDialog';
 
 type UserDetail = {
   profile: Profile;
@@ -29,6 +30,8 @@ export function UserManager() {
   const [saving, setSaving] = useState(false);
   const [scoreForm, setScoreForm] = useState({ score: 36, score_date: format(new Date(), 'yyyy-MM-dd') });
   const [editingScore, setEditingScore] = useState<GolfScore | null>(null);
+  const [cancelSubConfirm, setCancelSubConfirm] = useState(false);
+  const [deleteScoreTarget, setDeleteScoreTarget] = useState<string | null>(null);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -123,13 +126,12 @@ export function UserManager() {
 
   async function cancelSubscription() {
     if (!selectedUser) return;
-    if (
-      !confirm(
-        `Cancel subscription for ${selectedUser.profile.full_name}? They will lose access at period end.`
-      )
-    ) {
-      return;
-    }
+    setCancelSubConfirm(true);
+  }
+
+  async function confirmCancelSubscription() {
+    if (!selectedUser) return;
+    setCancelSubConfirm(false);
     try {
       const response = await fetch(
         `/api/admin/users/${selectedUser.profile.id}/cancel-subscription`,
@@ -194,8 +196,10 @@ export function UserManager() {
     }
   }
 
-  async function deleteScore(scoreId: string) {
-    if (!selectedUser || !confirm('Delete this score?')) return;
+  async function confirmDeleteScore() {
+    if (!selectedUser || !deleteScoreTarget) return;
+    const scoreId = deleteScoreTarget;
+    setDeleteScoreTarget(null);
     try {
       const response = await fetch(
         `/api/admin/users/${selectedUser.profile.id}/scores`,
@@ -477,7 +481,7 @@ export function UserManager() {
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
-                        <button type="button" onClick={() => deleteScore(score.id)}>
+                        <button type="button" onClick={() => setDeleteScoreTarget(score.id)}>
                           <Trash2 className="h-4 w-4 text-red-600" />
                         </button>
                       </div>
@@ -519,6 +523,26 @@ export function UserManager() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={cancelSubConfirm}
+        title="Cancel subscription?"
+        description={`${selectedUser?.profile.full_name} will lose access at the end of their current billing period.`}
+        confirmLabel="Cancel subscription"
+        variant="warning"
+        onConfirm={confirmCancelSubscription}
+        onCancel={() => setCancelSubConfirm(false)}
+      />
+
+      <ConfirmDialog
+        open={deleteScoreTarget !== null}
+        title="Delete score?"
+        description="This score will be permanently removed. This cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={confirmDeleteScore}
+        onCancel={() => setDeleteScoreTarget(null)}
+      />
     </div>
   );
 }
