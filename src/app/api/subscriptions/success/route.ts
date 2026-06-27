@@ -12,10 +12,10 @@ const ERROR_REDIRECTS: Record<string, string> = {
   session_invalid: 'session_invalid',
 };
 
-function dashboardSuccessUrl(appUrl: string) {
-  const dashboardUrl = new URL('/dashboard', appUrl);
-  dashboardUrl.searchParams.set('subscribed', '1');
-  return dashboardUrl.toString();
+function landingSuccessUrl(appUrl: string) {
+  const landingUrl = new URL('/', appUrl);
+  landingUrl.searchParams.set('subscribed', '1');
+  return landingUrl.toString();
 }
 
 export async function GET(request: Request) {
@@ -40,19 +40,19 @@ export async function GET(request: Request) {
   }
 
   if (await profileHasActiveSubscription(user.id)) {
-    return NextResponse.redirect(dashboardSuccessUrl(appUrl));
+    return NextResponse.redirect(landingSuccessUrl(appUrl));
   }
 
   const result = await activateSubscriptionFromCheckoutSession(sessionId, user.id);
 
   if (!result.ok) {
     if (await profileHasActiveSubscription(user.id)) {
-      return NextResponse.redirect(dashboardSuccessUrl(appUrl));
+      return NextResponse.redirect(landingSuccessUrl(appUrl));
     }
 
     const errorCode = ERROR_REDIRECTS[result.reason] ?? 'session_invalid';
     return NextResponse.redirect(`${appUrl}/signup?step=3&error=${errorCode}`);
   }
 
-  return NextResponse.redirect(dashboardSuccessUrl(appUrl));
+  return NextResponse.redirect(landingSuccessUrl(appUrl));
 }

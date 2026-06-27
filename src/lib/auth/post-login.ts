@@ -1,18 +1,19 @@
-import { hasDashboardAccess } from '@/lib/auth/nav-access';
-
 type ProfileAccessFields = {
   role: string | null;
   subscription_status: string | null;
   subscription_ends_at: string | null;
 };
 
+/**
+ * After sign-in, send users to the public landing page so they can open
+ * Dashboard / Admin Panel from the navbar. Only interrupted API flows
+ * (e.g. Stripe checkout completion) keep their original redirect target.
+ */
 export function resolvePostLoginRedirect(
   redirectTo: string | null | undefined,
-  profile: ProfileAccessFields | null | undefined,
+  profile?: ProfileAccessFields | null,
 ): string {
-  const isAdmin = profile?.role === 'admin';
-  const canAccessDashboard = hasDashboardAccess(profile);
-
+  void profile;
   const safeRedirect =
     redirectTo &&
     redirectTo.startsWith('/') &&
@@ -21,25 +22,9 @@ export function resolvePostLoginRedirect(
       ? redirectTo
       : null;
 
-  if (safeRedirect) {
-    // Admins trying to go to /dashboard get sent to /admin instead
-    if (isAdmin && safeRedirect.startsWith('/dashboard')) {
-      return '/admin';
-    }
-
-    const needsSubscription =
-      safeRedirect.startsWith('/dashboard') &&
-      !safeRedirect.startsWith('/dashboard/account');
-
-    if (needsSubscription && !canAccessDashboard) {
-      return '/';
-    }
-
+  if (safeRedirect?.startsWith('/api/')) {
     return safeRedirect;
   }
-
-  // Default post-login landing
-  if (isAdmin) return '/admin';
 
   return '/';
 }

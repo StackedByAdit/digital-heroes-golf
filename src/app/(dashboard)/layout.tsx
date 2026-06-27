@@ -3,9 +3,7 @@ import { NAV_PROFILE_SELECT, type NavProfileRow } from '@/lib/auth/nav-profile';
 import { getAuthUser } from '@/lib/supabase/cached-auth';
 import { createClient } from '@/lib/supabase/server';
 import { DashboardShell } from '@/components/dashboard/DashboardShell';
-import { SubscriptionWelcomeToast } from '@/components/dashboard/SubscriptionWelcomeToast';
 import type { Profile } from '@/types';
-import { Suspense } from 'react';
 
 export default async function DashboardLayout({
   children,
@@ -44,9 +42,6 @@ export default async function DashboardLayout({
 
   return (
     <DashboardShell profile={shellProfile}>
-      <Suspense fallback={null}>
-        <SubscriptionWelcomeToast />
-      </Suspense>
       {children}
     </DashboardShell>
   );

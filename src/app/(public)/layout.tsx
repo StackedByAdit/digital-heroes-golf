@@ -1,5 +1,6 @@
 import { Footer } from '@/components/layout/Footer';
 import { Navbar } from '@/components/layout/Navbar';
+import { SubscriptionWelcomeToast } from '@/components/dashboard/SubscriptionWelcomeToast';
 import {
   dashboardAccessFromNavProfile,
   isAdminProfile,
@@ -7,6 +8,7 @@ import {
   type NavProfileRow,
 } from '@/lib/auth/nav-profile';
 import { createClient } from '@/lib/supabase/server';
+import { Suspense } from 'react';
 
 export default async function PublicLayout({
   children,
@@ -32,6 +34,9 @@ export default async function PublicLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-brand-cream">
+      <Suspense fallback={null}>
+        <SubscriptionWelcomeToast />
+      </Suspense>
       <Navbar
         initialAuthenticated={Boolean(user)}
         initialHasDashboardAccess={dashboardAccessFromNavProfile(profile)}
