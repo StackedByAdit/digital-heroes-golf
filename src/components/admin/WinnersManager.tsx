@@ -245,7 +245,99 @@ export function WinnersManager() {
         ) : filtered.length === 0 ? (
           <p className="px-6 py-10 text-sm text-gray-500">No winners in this tab.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="divide-y divide-gray-100 md:hidden">
+            {filtered.map((winner) => {
+              const displayStatus = getWinnerDisplayStatus(winner);
+              const canAct = displayStatus === 'under_review';
+
+              return (
+                <article key={winner.id} className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-2">
+                      {canAct && (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(winner.id)}
+                          onChange={() => toggleSelected(winner.id)}
+                          className="mt-1 shrink-0"
+                          aria-label={`Select ${winner.winner_name}`}
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-gray-900">
+                          {winner.winner_name}
+                        </p>
+                        <p className="truncate text-xs text-gray-500">
+                          {winner.winner_email}
+                        </p>
+                      </div>
+                    </div>
+                    <span
+                      className={cn(
+                        'shrink-0 rounded-full px-2 py-1 text-xs font-semibold',
+                        statusStyles[displayStatus]
+                      )}
+                    >
+                      {winnerStatusLabel(displayStatus)}
+                    </span>
+                  </div>
+                  <dl className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="min-w-0">
+                      <dt className="text-gray-500">Draw</dt>
+                      <dd className="truncate text-gray-900">{winner.draw_month}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-gray-500">Match</dt>
+                      <dd className="text-gray-900">{winner.match_type}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-gray-500">Prize</dt>
+                      <dd className="font-semibold text-gray-900">
+                        {formatCurrency(winner.prize_amount)}
+                      </dd>
+                    </div>
+                  </dl>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {winner.proof_signed_url ? (
+                      <button
+                        type="button"
+                        onClick={() => setProofPreview(winner)}
+                        className="btn-interactive inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        Proof
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-400">No proof</span>
+                    )}
+                    {canAct && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={actionLoading === winner.id}
+                          onClick={() => setApproveTarget(winner)}
+                          className="btn-interactive rounded-md border border-emerald-200 px-2 py-1 text-xs font-medium text-emerald-800 hover:bg-emerald-50 disabled:opacity-50"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          disabled={actionLoading === winner.id}
+                          onClick={() => setRejectTarget(winner)}
+                          className="btn-interactive rounded-md border border-red-200 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
@@ -338,6 +430,7 @@ export function WinnersManager() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

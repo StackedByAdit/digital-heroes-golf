@@ -181,7 +181,7 @@ export function Navbar({
       {mobileOpen && (
         <div
           className={cn(
-            'mx-auto mt-2 max-w-4xl overflow-hidden rounded-2xl px-4 py-4 lg:hidden',
+            'pointer-events-auto mx-auto mt-2 max-w-4xl overflow-hidden rounded-2xl px-4 py-4 lg:hidden',
             overlayHero ? 'glass-panel-dark' : 'glass-nav',
           )}
         >
