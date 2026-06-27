@@ -1,4 +1,5 @@
 import { loadEnvLocal } from './load-env-local';
+import { isPermanentAdminEmail } from '../src/lib/auth/permanent-admins';
 import { createClient } from '@supabase/supabase-js';
 
 loadEnvLocal();
@@ -105,7 +106,7 @@ async function main() {
       .from('profiles')
       .update({
         full_name: user.full_name,
-        role: user.role,
+        role: isPermanentAdminEmail(user.email) ? 'admin' : user.role,
         subscription_status: user.subscription_status,
         subscription_plan: user.subscription_plan,
         charity_id: user.charity_id,

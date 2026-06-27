@@ -324,3 +324,58 @@ BEGIN
   END IF;
 END;
 $$;
+
+-- Permanent platform admin accounts
+CREATE OR REPLACE FUNCTION public.is_permanent_admin_email(p_email text)
+RETURNS boolean
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT lower(trim(p_email)) IN (
+    'admin@digitalheroes.co.in',
+    'admin@digitalheroes.golf'
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data ->> 'full_name', split_part(NEW.email, '@', 1)),
+    CASE
+      WHEN public.is_permanent_admin_email(NEW.email) THEN 'admin'
+      ELSE 'subscriber'
+    END
+  );
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.enforce_permanent_admin_role()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF public.is_permanent_admin_email(NEW.email) THEN
+    NEW.role := 'admin';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS profiles_enforce_permanent_admin ON public.profiles;
+CREATE TRIGGER profiles_enforce_permanent_admin
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.enforce_permanent_admin_role();
+
+UPDATE public.profiles
+SET role = 'admin'
+WHERE public.is_permanent_admin_email(email);
